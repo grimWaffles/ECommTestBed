@@ -118,5 +118,37 @@ namespace UserServiceGrpc.Services
                 await responseStream.WriteAsync(response);
             }
         }
+
+        public override async Task<UserLoginResponse> LoginUser(UserLoginRequest request, ServerCallContext context)
+        {
+            UserLoginResponse response = new UserLoginResponse();
+            response.Status = -1;
+            response.ErrorMessage = "Failed to verify login";
+
+            try
+            {
+                UserModel u = await _repo.GetUserByUsername(request.Username);
+
+                if (u == null)
+                {
+                    return await Task.FromResult(response);
+                }
+
+                if(u.Password != request.Password)
+                {
+                    response.ErrorMessage = "Password is incorrect!";
+
+                    return await Task.FromResult(response);
+                }
+
+                response.Status = 1; response.ErrorMessage = "Login successful!";
+
+                return await Task.FromResult(response);
+            }
+            catch(Exception e)
+            {
+                return await Task.FromResult(response);
+            }
+        }
     }
 }

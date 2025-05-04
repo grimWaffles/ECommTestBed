@@ -37,7 +37,7 @@ message UserLoginRequest{
 
 message UserLoginResponse{
 	string username = 1;
-	string status = 2;
+	int32 status = 2;
 	string errorMessage = 3;
 	string accessToken = 4;
 }
