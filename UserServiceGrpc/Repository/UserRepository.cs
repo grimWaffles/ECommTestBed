@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 using UserServiceGrpc.Database;
 using UserServiceGrpc.Models.Entities;
 
@@ -11,6 +12,7 @@ namespace UserServiceGrpc.Repository
         int CreateUser(UserModel user);
         int UpdateUser(UserModel user);
         int DeleteUser(UserModel user);
+        Task<UserModel> GetUserByUsername(string username);
     }
 
     public class UserRepository : IUserRepository
@@ -31,7 +33,8 @@ namespace UserServiceGrpc.Repository
 
                 return 1;
             }
-            catch (Exception ex) {
+            catch (Exception ex)
+            {
                 return -1;
             }
         }
@@ -55,11 +58,11 @@ namespace UserServiceGrpc.Repository
         {
             try
             {
-                UserModel u = await _db.Users.Include(u=> u.Role).Where(u=>u.Id == id).FirstAsync();
+                UserModel u = await _db.Users.Include(u => u.Role).Where(u => u.Id == id).FirstAsync();
 
                 return u;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return null;
             }
@@ -73,7 +76,7 @@ namespace UserServiceGrpc.Repository
 
                 return list;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return null;
             }
@@ -89,9 +92,27 @@ namespace UserServiceGrpc.Repository
 
                 return 1;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return -1;
+            }
+        }
+
+        public async Task<UserModel> GetUserByUsername(string username)
+        {
+            try
+            {
+                UserModel user = await _db.Users.AsNoTracking().Where(u => u.Username == username).Select(u=> new UserModel
+                {
+                    Id = u.Id, Username = u.Username, Password = u.Password
+                }).
+                FirstAsync();
+
+                return user;
+            }
+            catch(Exception e)
+            {
+                return null;
             }
         }
     }

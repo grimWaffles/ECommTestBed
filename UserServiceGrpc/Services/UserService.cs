@@ -35,6 +35,7 @@ namespace UserServiceGrpc.Services
 
             return await Task.FromResult(response);
         }
+
         public override async Task<UserResponseMultiple> GetAllUsers(Empty request, ServerCallContext context)
         {
             UserResponseMultiple response = new UserResponseMultiple();

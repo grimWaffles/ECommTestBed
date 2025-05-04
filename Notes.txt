@@ -1,0 +1,13 @@
+User Service APIs to make:
+-----------------------------------------
+1) Login
+2) Register
+3) Logout
+
+Processes:
+-----------------------------------------
+1) Login: 
+	-> Send username and password
+	-> Fetch username and password from db
+	-> If match send a token( dummy token for now)
+	-> If not send a error message

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using UserServiceGrpc.Database;
 using UserServiceGrpc.Repository;
 using UserServiceGrpc.Services;
@@ -16,7 +17,8 @@ namespace UserServiceGrpc
 
             //Add Database to the server
             builder.Services.AddDbContext<AppDbContext>(options=>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("HomeServer"))
+                //options.UseSqlServer(builder.Configuration.GetConnectionString("HomeServer"))
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
             );
 
             //Add services for dependency injection
