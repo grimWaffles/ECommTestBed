@@ -26,8 +26,9 @@ namespace API_Gateway.Controllers
         [Route("getById/{id}")]
         public async Task<ActionResult> GetUserById(int id)
         {
-            await _userService.GetUserById(id);
-            return Ok("Found user!");
+            UserResponseSingle user = await _userService.GetUserById(id);
+
+            return StatusCode(StatusCodes.Status200OK, new { data = user });
         }
 
         [HttpGet]
@@ -54,6 +55,15 @@ namespace API_Gateway.Controllers
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new { data = "" });
             }
+
+            return StatusCode(StatusCodes.Status200OK, new { data = response });
+        }
+
+        [HttpPost]
+        [Route("login")]
+        public async Task<ActionResult> LoginUser([FromForm] string username, [FromForm] string password)
+        {
+            UserLoginResponse response = await _userService.LoginUser(username, password);
 
             return StatusCode(StatusCodes.Status200OK, new { data = response });
         }

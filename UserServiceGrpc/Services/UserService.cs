@@ -6,9 +6,10 @@ using UserServiceGrpc.Repository;
 
 namespace UserServiceGrpc.Services
 {
-    public class UserService  : User.UserBase
+    public class UserService : User.UserBase
     {
         private readonly IUserRepository _repo;
+
         public UserService(IUserRepository userRepository)
         {
             _repo = userRepository;
@@ -134,18 +135,18 @@ namespace UserServiceGrpc.Services
                     return await Task.FromResult(response);
                 }
 
-                if(u.Password != request.Password)
+                if (u.Password != request.Password)
                 {
                     response.ErrorMessage = "Password is incorrect!";
 
                     return await Task.FromResult(response);
                 }
 
-                response.Status = 1; response.ErrorMessage = "Login successful!";
+                response.Status = 1; response.ErrorMessage = "Login successful!"; response.AccessToken = "token";
 
                 return await Task.FromResult(response);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return await Task.FromResult(response);
             }
