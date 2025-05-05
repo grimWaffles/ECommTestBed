@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+option csharp_namespace = "ProductServiceGrpc";
+
+message ProductCategoryRequest {
+  int32 id = 1;
+}
+
+message ProductCategoryCreateRequest {
+  string categoryName = 1;
+  int32 createdBy = 2;
+}
+
+message ProductCategoryUpdateRequest {
+  int32 id = 1;
+  string categoryName = 2;
+  int32 modifiedBy = 3;
+}
+
+message ProductCategoryDeleteRequest {
+  int32 id = 1;
+  int32 modifiedBy = 2;
+}
+
+message ProductCategoryResponse {
+  int32 id = 1;
+  string categoryName = 2;
+  int32 createdBy = 3;
+  google.protobuf.Timestamp createdDate = 4;
+  google.protobuf.Timestamp modifiedDate = 5;
+  int32 modifiedBy = 6;
+  bool isDeleted = 7;
+}
+
+message ProductCategoryListResponse {
+  repeated ProductCategoryResponse categories = 1;
+}
+
+service ProductCategoryService {
+  rpc CreateCategory (ProductCategoryCreateRequest) returns (ProductCategoryResponse);
+  rpc GetCategoryById (ProductCategoryRequest) returns (ProductCategoryResponse);
+  rpc GetAllCategories (google.protobuf.Empty) returns (ProductCategoryListResponse);
+  rpc UpdateCategory (ProductCategoryUpdateRequest) returns (ProductCategoryResponse);
+  rpc DeleteCategory (ProductCategoryDeleteRequest) returns (google.protobuf.Empty);
+}
+
