@@ -1,20 +1,23 @@
 ﻿using EfCoreTutorial.Entity.ECommerceModels;
+using Google.Protobuf;
 using Grpc.Core;
+using ProductServiceGrpc.Database;
+using ProductServiceGrpc.Repository;
 
 namespace ProductServiceGrpc.Services
 {
-    public class SellerService : SellerService.SellerServiceBase
+    public class SellerService : Seller.SellerBase
     {
-        private readonly YourDbContext _db;
+        private readonly ISellerRepository _repo;
 
-        public SellerService(YourDbContext db)
+        public SellerService(ISellerRepository repo)
         {
-            _db = db;
+            _repo = repo;
         }
 
         public override async Task<SellerResponse> CreateSeller(SellerCreateRequest request, ServerCallContext context)
         {
-            var seller = new Seller
+            SellerModel seller = new SellerModel
             {
                 CompanyName = request.CompanyName,
                 Address = request.Address,
@@ -25,27 +28,28 @@ namespace ProductServiceGrpc.Services
                 CreatedDate = DateTime.UtcNow
             };
 
-            _db.Sellers.Add(seller);
-            await _db.SaveChangesAsync();
+            try
+            {
+                await _repo.CreateSellerAsync(seller);
+            }
+            catch(Exception e)
+            {
+                return null;
+            }
 
             return MapToResponse(seller);
         }
 
         public override async Task<SellerResponse> GetSellerById(SellerRequest request, ServerCallContext context)
         {
-            var seller = await _db.Sellers
-                .Include(s => s.Products)
-                .FirstOrDefaultAsync(s => s.Id == request.Id && !s.IsDeleted);
+            SellerModel seller = await _repo.GetSellerByIdAsync(request.Id);
 
             return seller == null ? null : MapToResponse(seller);
         }
 
         public override async Task<SellerListResponse> GetAllSellers(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
         {
-            var sellers = await _db.Sellers
-                .Where(s => !s.IsDeleted)
-                .Include(s => s.Products)
-                .ToListAsync();
+            var sellers = await _repo.GetAllSellersAsync();
 
             var response = new SellerListResponse();
             response.Sellers.AddRange(sellers.Select(MapToResponse));
@@ -54,36 +58,28 @@ namespace ProductServiceGrpc.Services
 
         public override async Task<SellerResponse> UpdateSeller(SellerUpdateRequest request, ServerCallContext context)
         {
-            var seller = await _db.Sellers.FindAsync(request.Id);
+            var seller = await _repo.GetSellerByIdAsync(request.Id);
+
             if (seller == null || seller.IsDeleted) return null;
 
-            seller.CompanyName = request.CompanyName;
-            seller.Address = request.Address;
-            seller.MobileNo = request.MobileNo;
-            seller.Email = request.Email;
-            seller.Rating = (decimal)request.Rating;
-            seller.ModifiedBy = request.ModifiedBy;
-            seller.ModifiedDate = DateTime.UtcNow;
+            await _repo.UpdateSellerAsync(seller);
 
-            await _db.SaveChangesAsync();
             return MapToResponse(seller);
         }
 
         public override async Task<Google.Protobuf.WellKnownTypes.Empty> DeleteSeller(SellerDeleteRequest request, ServerCallContext context)
         {
-            var seller = await _db.Sellers.FindAsync(request.Id);
+            var seller = await _repo.GetSellerByIdAsync(request.Id);
+
             if (seller != null && !seller.IsDeleted)
             {
-                seller.IsDeleted = true;
-                seller.ModifiedBy = request.ModifiedBy;
-                seller.ModifiedDate = DateTime.UtcNow;
-                await _db.SaveChangesAsync();
+                await _repo.DeleteSellerAsync(request.Id, request.ModifiedBy);
             }
 
             return new Google.Protobuf.WellKnownTypes.Empty();
         }
 
-        private SellerResponse MapToResponse(Seller seller)
+        private SellerResponse MapToResponse(SellerModel seller)
         {
             return new SellerResponse
             {

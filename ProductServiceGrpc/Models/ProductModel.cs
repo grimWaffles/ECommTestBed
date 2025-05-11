@@ -51,8 +51,8 @@ namespace EfCoreTutorial.Entity.ECommerceModels
 
         public bool IsDeleted { get; set; } = false;
 
-        public virtual Seller Seller { get; set; }
-        public virtual ProductCategory ProductCategory { get; set; }
+        public virtual SellerModel Seller { get; set; }
+        public virtual ProductCategoryModel ProductCategory { get; set; }
 
         [NotMapped]
         public string SellerCompanyName { get; set; }

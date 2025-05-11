@@ -6,10 +6,10 @@ namespace ProductServiceGrpc.Repository
 {
     public interface IProductCategoryRepository
     {
-        Task<ProductCategory> CreateCategoryAsync(ProductCategory category);
-        Task<ProductCategory?> GetCategoryByIdAsync(int id);
-        Task<List<ProductCategory>> GetAllCategoriesAsync();
-        Task<bool> UpdateCategoryAsync(ProductCategory updatedCategory);
+        Task<ProductCategoryModel> CreateCategoryAsync(ProductCategoryModel category);
+        Task<ProductCategoryModel?> GetCategoryByIdAsync(int id);
+        Task<List<ProductCategoryModel>> GetAllCategoriesAsync();
+        Task<bool> UpdateCategoryAsync(ProductCategoryModel updatedCategory);
         Task<bool> DeleteCategoryAsync(int id, int modifiedBy);
     }
 
@@ -23,7 +23,7 @@ namespace ProductServiceGrpc.Repository
         }
 
         // CREATE
-        public async Task<ProductCategory> CreateCategoryAsync(ProductCategory category)
+        public async Task<ProductCategoryModel> CreateCategoryAsync(ProductCategoryModel category)
         {
             category.CreatedDate = DateTime.UtcNow;
             _db.ProductCategories.Add(category);
@@ -32,7 +32,7 @@ namespace ProductServiceGrpc.Repository
         }
 
         // READ (Get by Id)
-        public async Task<ProductCategory?> GetCategoryByIdAsync(int id)
+        public async Task<ProductCategoryModel?> GetCategoryByIdAsync(int id)
         {
             return await _db.ProductCategories
                             .Include(c => c.Products)
@@ -40,7 +40,7 @@ namespace ProductServiceGrpc.Repository
         }
 
         // READ (Get all)
-        public async Task<List<ProductCategory>> GetAllCategoriesAsync()
+        public async Task<List<ProductCategoryModel>> GetAllCategoriesAsync()
         {
             return await _db.ProductCategories
                             .Where(c => !c.IsDeleted)
@@ -49,7 +49,7 @@ namespace ProductServiceGrpc.Repository
         }
 
         // UPDATE
-        public async Task<bool> UpdateCategoryAsync(ProductCategory updatedCategory)
+        public async Task<bool> UpdateCategoryAsync(ProductCategoryModel updatedCategory)
         {
             var existingCategory = await _db.ProductCategories.FindAsync(updatedCategory.Id);
             if (existingCategory == null || existingCategory.IsDeleted)

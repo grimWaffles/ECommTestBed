@@ -88,13 +88,11 @@ namespace ProductServiceGrpc.Services
 
         public override async Task<Google.Protobuf.WellKnownTypes.Empty> DeleteProduct(ProductDeleteRequest request, ServerCallContext context)
         {
-            var product = await _db.Products.FindAsync(request.Id);
+            var product = await _repo.GetProductByIdAsync(request.Id);
+
             if (product != null && !product.IsDeleted)
             {
-                product.IsDeleted = true;
-                product.ModifiedBy = request.ModifiedBy;
-                product.ModifiedDate = DateTime.UtcNow;
-                await _db.SaveChangesAsync();
+                await _repo.DeleteProductAsync(request.Id, request.ModifiedBy);
             }
 
             return new Google.Protobuf.WellKnownTypes.Empty();

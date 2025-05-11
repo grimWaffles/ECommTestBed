@@ -52,7 +52,7 @@ message SellerListResponse {
 }
 
 // Service Definition
-service SellerService {
+service Seller {
   rpc CreateSeller (SellerCreateRequest) returns (SellerResponse);
   rpc GetSellerById (SellerRequest) returns (SellerResponse);
   rpc GetAllSellers (google.protobuf.Empty) returns (SellerListResponse);

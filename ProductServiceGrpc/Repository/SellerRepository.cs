@@ -6,10 +6,10 @@ namespace ProductServiceGrpc.Repository
 {
     public interface ISellerRepository
     {
-        Task<Seller> CreateSellerAsync(Seller seller);
-        Task<Seller?> GetSellerByIdAsync(int id);
-        Task<List<Seller>> GetAllSellersAsync();
-        Task<bool> UpdateSellerAsync(Seller updatedSeller);
+        Task<SellerModel> CreateSellerAsync(SellerModel seller);
+        Task<SellerModel> GetSellerByIdAsync(int id);
+        Task<List<SellerModel>> GetAllSellersAsync();
+        Task<bool> UpdateSellerAsync(SellerModel updatedSeller);
         Task<bool> DeleteSellerAsync(int id, int modifiedBy);
     }
     public class SellerRepository : ISellerRepository
@@ -22,7 +22,7 @@ namespace ProductServiceGrpc.Repository
         }
 
         // CREATE
-        public async Task<Seller> CreateSellerAsync(Seller seller)
+        public async Task<SellerModel> CreateSellerAsync(SellerModel seller)
         {
             seller.CreatedDate = DateTime.UtcNow;
             _db.Sellers.Add(seller);
@@ -31,7 +31,7 @@ namespace ProductServiceGrpc.Repository
         }
 
         // READ (Get by Id)
-        public async Task<Seller?> GetSellerByIdAsync(int id)
+        public async Task<SellerModel> GetSellerByIdAsync(int id)
         {
             return await _db.Sellers
                             .Include(s => s.Products)
@@ -39,7 +39,7 @@ namespace ProductServiceGrpc.Repository
         }
 
         // READ (Get all)
-        public async Task<List<Seller>> GetAllSellersAsync()
+        public async Task<List<SellerModel>> GetAllSellersAsync()
         {
             return await _db.Sellers
                             .Where(s => !s.IsDeleted)
@@ -48,7 +48,7 @@ namespace ProductServiceGrpc.Repository
         }
 
         // UPDATE
-        public async Task<bool> UpdateSellerAsync(Seller updatedSeller)
+        public async Task<bool> UpdateSellerAsync(SellerModel updatedSeller)
         {
             var existingSeller = await _db.Sellers.FindAsync(updatedSeller.Id);
             if (existingSeller == null || existingSeller.IsDeleted)

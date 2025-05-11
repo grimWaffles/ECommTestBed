@@ -38,7 +38,7 @@ message ProductCategoryListResponse {
   repeated ProductCategoryResponse categories = 1;
 }
 
-service ProductCategoryService {
+service ProductCategory {
   rpc CreateCategory (ProductCategoryCreateRequest) returns (ProductCategoryResponse);
   rpc GetCategoryById (ProductCategoryRequest) returns (ProductCategoryResponse);
   rpc GetAllCategories (google.protobuf.Empty) returns (ProductCategoryListResponse);

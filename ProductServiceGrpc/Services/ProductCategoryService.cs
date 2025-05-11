@@ -1,45 +1,51 @@
-﻿using EfCoreTutorial.Entity.ECommerceModels;
+﻿
+using EfCoreTutorial.Entity.ECommerceModels;
 using Grpc.Core;
+using ProductServiceGrpc.Database;
+using ProductServiceGrpc.Repository;
 
 namespace ProductServiceGrpc.Services
 {
-    public class ProductCategoryService : ProductCategoryService.ProductCategoryServiceBase
+    public class ProductCategoryService : ProductCategory.ProductCategoryBase
     {
-        private readonly YourDbContext _db;
+        private readonly IProductCategoryRepository _repo;
 
-        public ProductCategoryService(YourDbContext db)
+        public ProductCategoryService(IProductCategoryRepository db)
         {
-            _db = db;
+            _repo = db;
         }
 
         public override async Task<ProductCategoryResponse> CreateCategory(ProductCategoryCreateRequest request, ServerCallContext context)
         {
-            var category = new ProductCategory
+            ProductCategoryModel category = new ProductCategoryModel()
             {
                 CategoryName = request.CategoryName,
                 CreatedBy = request.CreatedBy,
                 CreatedDate = DateTime.UtcNow
             };
 
-            _db.ProductCategories.Add(category);
-            await _db.SaveChangesAsync();
+            try
+            {
+                await _repo.CreateCategoryAsync(category);
+            }
+            catch(Exception e)
+            {
+                return null;
+            }
 
             return MapToResponse(category);
         }
 
         public override async Task<ProductCategoryResponse> GetCategoryById(ProductCategoryRequest request, ServerCallContext context)
         {
-            var category = await _db.ProductCategories
-                .FirstOrDefaultAsync(c => c.Id == request.Id && !c.IsDeleted);
+            ProductCategoryModel category = await _repo.GetCategoryByIdAsync(request.Id);
 
             return category == null ? null : MapToResponse(category);
         }
 
         public override async Task<ProductCategoryListResponse> GetAllCategories(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
         {
-            var categories = await _db.ProductCategories
-                .Where(c => !c.IsDeleted)
-                .ToListAsync();
+            var categories = await _repo.GetAllCategoriesAsync();
 
             var response = new ProductCategoryListResponse();
             response.Categories.AddRange(categories.Select(MapToResponse));
@@ -48,32 +54,45 @@ namespace ProductServiceGrpc.Services
 
         public override async Task<ProductCategoryResponse> UpdateCategory(ProductCategoryUpdateRequest request, ServerCallContext context)
         {
-            var category = await _db.ProductCategories.FindAsync(request.Id);
+            var category = await _repo.GetCategoryByIdAsync(request.Id);
+
             if (category == null || category.IsDeleted) return null;
 
             category.CategoryName = request.CategoryName;
             category.ModifiedBy = request.ModifiedBy;
             category.ModifiedDate = DateTime.UtcNow;
 
-            await _db.SaveChangesAsync();
+            try
+            {
+                await _repo.UpdateCategoryAsync(category);
+            }
+            catch(Exception e)
+            {
+                return null;
+            }
+
             return MapToResponse(category);
         }
 
         public override async Task<Google.Protobuf.WellKnownTypes.Empty> DeleteCategory(ProductCategoryDeleteRequest request, ServerCallContext context)
         {
-            var category = await _db.ProductCategories.FindAsync(request.Id);
-            if (category != null && !category.IsDeleted)
+            var category = await _repo.GetCategoryByIdAsync(request.Id);
+
+            try
             {
-                category.IsDeleted = true;
-                category.ModifiedBy = request.ModifiedBy;
-                category.ModifiedDate = DateTime.UtcNow;
-                await _db.SaveChangesAsync();
+                if (category != null && !category.IsDeleted)
+                {
+                    await _repo.DeleteCategoryAsync(request.Id, request.ModifiedBy);
+                }
+            }
+            catch (Exception ex) {
+                return null;
             }
 
             return new Google.Protobuf.WellKnownTypes.Empty();
         }
 
-        private ProductCategoryResponse MapToResponse(ProductCategory category)
+        private ProductCategoryResponse MapToResponse(ProductCategoryModel category)
         {
             return new ProductCategoryResponse
             {

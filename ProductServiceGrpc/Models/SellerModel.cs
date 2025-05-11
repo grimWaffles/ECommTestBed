@@ -10,9 +10,9 @@ using Microsoft.EntityFrameworkCore;
 namespace EfCoreTutorial.Entity.ECommerceModels
 {
     [Index(nameof(MobileNo), nameof(Email), IsUnique = true)]
-    public class Seller
+    public class SellerModel
     {
-        public Seller()
+        public SellerModel()
         {
             Products = new List<ProductModel>();
             CompanyName = "";
