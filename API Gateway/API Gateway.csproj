@@ -8,6 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Protos\product.proto" />
+    <None Remove="Protos\productCategory.proto" />
+    <None Remove="Protos\seller.proto" />
+  </ItemGroup>
+
+  <ItemGroup>
 	  <PackageReference Include="Google.Protobuf" Version="3.30.2" />
 	  <PackageReference Include="Grpc.Net.Client" Version="2.71.0" />
 	  <PackageReference Include="Grpc.Tools" Version="2.71.0" />
@@ -17,6 +23,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Protobuf Include="Protos\product.proto">
+      <GrpcServices>Client</GrpcServices>
+    </Protobuf>
+    <Protobuf Include="Protos\productCategory.proto">
+      <GrpcServices>Client</GrpcServices>
+    </Protobuf>
+    <Protobuf Include="Protos\seller.proto">
+      <GrpcServices>Client</GrpcServices>
+    </Protobuf>
     <Protobuf Include="Protos\user.proto" GrpcServices="Client" />
   </ItemGroup>
 

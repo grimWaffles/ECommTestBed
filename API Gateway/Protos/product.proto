@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+option csharp_namespace = "ProductServiceGrpc";
+
+message ProductRequest {
+  int32 id = 1;
+}
+
+message ProductCreateRequest {
+  string name = 1;
+  int32 defaultQuantity = 2;
+  double rating = 3;
+  double price = 4;
+  string description = 5;
+  int32 sellerId = 6;
+  int32 productCategoryId = 7;
+  int32 createdBy = 8;
+}
+
+message ProductUpdateRequest {
+  int32 id = 1;
+  string name = 2;
+  int32 defaultQuantity = 3;
+  double rating = 4;
+  double price = 5;
+  string description = 6;
+  int32 sellerId = 7;
+  int32 productCategoryId = 8;
+  int32 modifiedBy = 9;
+}
+
+message ProductDeleteRequest {
+  int32 id = 1;
+  int32 modifiedBy = 2;
+}
+
+message ProductResponse {
+  int32 id = 1;
+  string name = 2;
+  int32 defaultQuantity = 3;
+  double rating = 4;
+  double price = 5;
+  string description = 6;
+  int32 sellerId = 7;
+  int32 productCategoryId = 8;
+  int32 createdBy = 9;
+  google.protobuf.Timestamp createdDate = 10;
+  google.protobuf.Timestamp modifiedDate = 11;
+  int32 modifiedBy = 12;
+  bool isDeleted = 13;
+  string sellerCompanyName = 14;
+  string productCategoryName = 15;
+}
+
+message ProductListResponse {
+  repeated ProductResponse products = 1;
+}
+
+service Product {
+  rpc CreateProduct (ProductCreateRequest) returns (ProductResponse);
+  rpc GetProductById (ProductRequest) returns (ProductResponse);
+  rpc GetAllProducts (google.protobuf.Empty) returns (ProductListResponse);
+  rpc UpdateProduct (ProductUpdateRequest) returns (ProductResponse);
+  rpc DeleteProduct (ProductDeleteRequest) returns (google.protobuf.Empty);
+}
+
+
+

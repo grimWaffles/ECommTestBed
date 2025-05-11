@@ -18,6 +18,9 @@ namespace API_Gateway
 
             //Add Dependency Injection
             builder.Services.AddScoped<IUserService, UserService>();
+            builder.Services.AddScoped<IProductCategoryService,ProductCategoryService>();
+            builder.Services.AddScoped<IProductService, ProductService>();
+            builder.Services.AddScoped<ISellerService, SellerService>();
 
             var app = builder.Build();
 
