@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+option csharp_namespace = "OrderServiceGrpc.Protos";
+
+message TransactionObject{
+	int32 Id = 1;
+	int32 UserId = 2;
+	string TransactionType = 3;
+	double Amount = 4;
+	google.protobuf.Timestamp CreatedDate = 5;
+	int32 CreatedBy = 6;
+	bool isDeleted = 7;
+	google.protobuf.Timestamp TransactionDate = 8;
+}
+
+message TransactionResponse{
+	bool Status = 1;
+	string ErrorMessage = 2;
+	repeated TransactionObject ListOfTransactions = 3;
+}
+
+message TransactionRequest{
+	int32 PageNumber = 1;
+	int32 PageLength = 2;
+	int32 TransactionId = 3;
+	string TransactionType = 4;
+	google.protobuf.Timestamp TransactionDate = 5;
+	google.protobuf.Timestamp StartDate = 6;
+	google.protobuf.Timestamp EndDate = 7;
+}
+
+service CustomerTransaction{
+	rpc GetAllTransactions (TransactionRequest) returns (TransactionResponse);
+	rpc GetTransactionById (TransactionRequest) returns (TransactionResponse);
+	rpc AddTransaction (TransactionObject) returns (TransactionResponse);
+	rpc UpdateTransaction (TransactionObject) returns (TransactionResponse);
+	rpc DeleteTransaction (TransactionObject) returns (TransactionResponse);
+}
