@@ -6,14 +6,10 @@ namespace OrderServiceGrpc.Services
 {
     public class CustomerTransactionService : CustomerTransaction.CustomerTransactionBase
     {
-        private readonly IConfiguration _config;
-        private readonly string _connectionString;
         private readonly ICustomerTransactionRepository _trxRepo;
 
         public CustomerTransactionService(IConfiguration configuration, ICustomerTransactionRepository customerTransactionRepository)
         {
-            _config = configuration;
-            _connectionString = _config.GetSection("ConnectionString:DefaultConnection").Get<string>() ?? "";
             _trxRepo = customerTransactionRepository;
         }
 
