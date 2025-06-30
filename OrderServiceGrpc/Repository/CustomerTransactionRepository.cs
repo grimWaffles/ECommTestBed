@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Data.SqlClient;
 using OrderServiceGrpc.Models;
 using OrderServiceGrpc.Protos;
@@ -26,14 +27,95 @@ namespace OrderServiceGrpc.Repository
             _config = configuration;
             _connectionString = _config.GetSection("ConnectionString:DefaultConnection").Get<string>() ?? "";
         }
-        public Task<bool> AddTransaction(TransactionObject request, int userId)
+        public async Task<bool> AddTransaction(TransactionObject request, int userId)
         {
+            string sql = @" INSERT INTO CustomerTransactionModel (
+                                UserId,
+                                TransactionType,
+                                Amount,
+                                CreatedDate,
+                                CreatedBy,
+                                IsDeleted,
+                                TransactionDate
+                            )
+                            VALUES (
+                                @UserId,
+                                @TransactionType,
+                                @Amount,
+                                @CreatedDate,
+                                @CreatedBy,
+                                @IsDeleted,
+                                @TransactionDate
+                            );";
+            object[] parameters = { new
+            {
+                UserId = request.UserId,
+                TransactionType = request.TransactionType,
+                Amount = request.Amount,
+                CreatedDate = DateTime.Now,
+                CreatedBy = userId,
+                IsDeleted = false,
+                TransactionDate = DateTime.Now
+            }};
+
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(_connectionString))
+                {
+                    await conn.ExecuteAsync(sql, parameters);
+
+                    return true;
+                }
+            }
+            catch(Exception e)
+            {
+                return false;
+            }
+
             throw new NotImplementedException();
         }
 
-        public Task<bool> DeleteTransaction(TransactionObject request, int userId)
+        public async Task<bool> DeleteTransaction(TransactionObject request, int userId)
         {
-            throw new NotImplementedException();
+            string sql = @" UPDATE CustomerTransactionModel
+                            SET
+                                UserId = @UserId,
+                                TransactionType = @TransactionType,
+                                Amount = @Amount,
+                                CreatedDate = @CreatedDate,
+                                CreatedBy = @CreatedBy,
+                                IsDeleted = @IsDeleted,
+                                TransactionDate = @TransactionDate,
+                                ModifiedDate = @ModifiedDate,
+                                ModifiedBy = @ModifiedBy
+                            WHERE
+                                Id = @Id;";
+
+            object[] parameters = { new
+            {
+                Id=request.Id,
+                UserId = request.UserId,
+                TransactionType = request.TransactionType,
+                Amount = request.Amount,
+                ModifiedDate = DateTime.Now,
+                ModifiedBy = userId,
+                IsDeleted = false,
+                TransactionDate = DateTime.Now
+            }};
+
+            try
+            {
+                using(SqlConnection conn = new SqlConnection(_connectionString))
+                {
+                    await conn.ExecuteAsync(sql, parameters);
+
+                    return true;
+                }
+            }
+            catch(Exception e)
+            {
+                return false;
+            }
         }
 
         public async Task<List<CustomerTransactionModel>> GetAllTransactions(TransactionRequest request)
@@ -81,7 +163,11 @@ namespace OrderServiceGrpc.Repository
 	                            OFFSET (@PageNumber-1)*(@PageSize) ROWS
 	                            FETCH NEXT @PageSize ROWS ONLY
 
-	                            SELECT COUNT(*) TotalTransactions FROM CustomerTransactions";
+	                            declare @TRows int = (SELECT COUNT(*) TotalTransactions FROM CustomerTransactions)
+	                            declare @TPages int = @TRows/@PageSize 
+
+	                            select @TRows TRows
+	                            select @TPages + 1 TPages";
 
                 using (SqlConnection conn = new SqlConnection(_connectionString))
                 {
@@ -89,6 +175,7 @@ namespace OrderServiceGrpc.Repository
 
                     List<CustomerTransactionModel> list = (List<CustomerTransactionModel>)await resultSet.ReadAsync<CustomerTransactionModel>();
                     int totalRows = await resultSet.ReadSingleAsync<int>();
+                    int totalPages = await resultSet.ReadSingleAsync<int>();
 
                     return list;
                 }
