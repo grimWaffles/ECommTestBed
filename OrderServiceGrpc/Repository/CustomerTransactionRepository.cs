@@ -22,10 +22,11 @@ namespace OrderServiceGrpc.Repository
     {
         private readonly string _connectionString;
         private readonly IConfiguration _config;
+
         public CustomerTransactionRepository(IConfiguration configuration)
         {
             _config = configuration;
-            _connectionString = _config.GetSection("ConnectionString:DefaultConnection").Get<string>() ?? "";
+            _connectionString = _config.GetSection("ConnectionStrings:DefaultConnection").Get<string>() ?? "";
         }
         public async Task<bool> AddTransaction(TransactionObject request, int userId)
         {
@@ -122,7 +123,7 @@ namespace OrderServiceGrpc.Repository
         {
             try
             {
-                string sql = @"select * from Transactions";
+                string sql = @"select * from CustomerTransactions";
 
                 SqlConnection conn = new SqlConnection(_connectionString);
 

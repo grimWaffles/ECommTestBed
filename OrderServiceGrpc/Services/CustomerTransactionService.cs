@@ -18,7 +18,7 @@ namespace OrderServiceGrpc.Services
 
         public override async Task<TransactionResponse> GetAllTransactions(TransactionRequest request, ServerCallContext context)
         {
-            List<CustomerTransactionModel> list = await _trxRepo.GetAllTransactionsWithPagination(request);
+            List<CustomerTransactionModel> list = await _trxRepo.GetAllTransactions(request);
             List<TransactionObject> result = new List<TransactionObject>();
 
             if (list.IsNullOrEmpty())
