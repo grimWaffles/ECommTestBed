@@ -13,6 +13,6 @@
         public int ModifiedBy { get; set; }
         public DateTime ModifiedDate { get; set; }
         public bool IsDeleted { get; set; }
-        public List<OrderItem> orderItems { get; set; }
+        public List<OrderItemModel> OrderItems { get; set; }
     }
 }

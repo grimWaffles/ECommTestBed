@@ -63,8 +63,9 @@ namespace OrderServiceGrpc.Repository
             {
                 using (SqlConnection conn = new SqlConnection(_connectionString))
                 {
+                    await conn.OpenAsync();
                     await conn.ExecuteAsync(sql, parameters);
-
+                    await conn.CloseAsync();
                     return true;
                 }
             }
@@ -108,8 +109,9 @@ namespace OrderServiceGrpc.Repository
             {
                 using(SqlConnection conn = new SqlConnection(_connectionString))
                 {
+                    await conn.OpenAsync();
                     await conn.ExecuteAsync(sql, parameters);
-
+                    await conn.CloseAsync();
                     return true;
                 }
             }
@@ -128,9 +130,9 @@ namespace OrderServiceGrpc.Repository
                 SqlConnection conn = new SqlConnection(_connectionString);
 
                 //List<CustomerTransactionModel> list = new List<CustomerTransactionModel>();
-
+                await conn.OpenAsync();
                 List<CustomerTransactionModel> transactions = (List<CustomerTransactionModel>)await conn.QueryAsync<CustomerTransactionModel>(sql);
-
+                await conn.CloseAsync();
                 //foreach(var transaction in transactions)
                 //{
                 //    list.Add(transaction);
@@ -172,6 +174,7 @@ namespace OrderServiceGrpc.Repository
 
                 using (SqlConnection conn = new SqlConnection(_connectionString))
                 {
+                    await conn.OpenAsync();
                     GridReader resultSet = await conn.QueryMultipleAsync(sql);
 
                     List<CustomerTransactionModel> list = (List<CustomerTransactionModel>)await resultSet.ReadAsync<CustomerTransactionModel>();
@@ -197,10 +200,13 @@ namespace OrderServiceGrpc.Repository
                                         *--TransactionType, Amount, TransactionDate, UserId 
                                     from CustomerTransactions 
                                     where Id = @Id";
-
+                    
+                    await db.OpenAsync();
+                    
                     CustomerTransactionModel model = await db.QuerySingleAsync<CustomerTransactionModel>(sql, new { Id = 1 });
-
                     await db.DisposeAsync();
+
+                    await db.CloseAsync();
 
                     return model;
                 }
@@ -218,8 +224,9 @@ namespace OrderServiceGrpc.Repository
                 using (var db = new SqlConnection(_connectionString))
                 {
                     string sql = "select count(*) from CustomerTransactions";
-
+                    await db.OpenAsync();
                     return await db.ExecuteScalarAsync<int>(sql);
+                    await db.CloseAsync();
                 }
 
             }
