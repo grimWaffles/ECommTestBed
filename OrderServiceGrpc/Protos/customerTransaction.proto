@@ -31,7 +31,7 @@ message TransactionRequest{
 	google.protobuf.Timestamp EndDate = 7;
 }
 
-service CustomerTransaction{
+service CustomerTransactionGrpcService{
 	rpc GetAllTransactions (TransactionRequest) returns (TransactionResponse);
 	rpc GetTransactionById (TransactionRequest) returns (TransactionResponse);
 	rpc AddTransaction (TransactionObject) returns (TransactionResponse);

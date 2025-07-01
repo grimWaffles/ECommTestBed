@@ -7,7 +7,7 @@ using OrderServiceGrpc.Repository;
 
 namespace OrderServiceGrpc.Services
 {
-    public class CustomerTransactionService : CustomerTransaction.CustomerTransactionBase
+    public class CustomerTransactionService : CustomerTransactionGrpcService.CustomerTransactionGrpcServiceBase
     {
         private readonly ICustomerTransactionRepository _trxRepo;
 
