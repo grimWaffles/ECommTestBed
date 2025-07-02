@@ -40,24 +40,12 @@ namespace OrderServiceGrpc.Repository
 
         public async Task<bool> AddOrder(OrderModel request, int userId)
         {
-            string sql = @" INSERT INTO [dbo].[Orders]
-                                   ([OrderDate]
-                                   ,[OrderCounter]
-                                   ,[UserId]
-                                   ,[Status]
-                                   ,[NetAmount]
-                                   ,[CreatedBy]
-                                   ,[CreatedDate]
-                                   ,[IsDeleted])
-                             VALUES
-                                   (@OrderDate, 
-                                   @OrderCounter,
-                                   @UserId,
-                                   @Status,
-                                   @NetAmount,
-                                   @CreatedBy, 
-                                   @CreatedDate,
-                                   @IsDeleted ); select Convert(int,SCOPE_IDENTITY())";
+            string insertOrderSql = @" INSERT INTO [dbo].[Orders]
+                                   ([OrderDate] ,[OrderCounter] ,[UserId]  ,[Status] ,[NetAmount] ,[CreatedBy] ,[CreatedDate] ,[IsDeleted])
+                             VALUES (@OrderDate,  @OrderCounter, @UserId, @Status, @NetAmount, @CreatedBy,  @CreatedDate, @IsDeleted ); select Convert(int,SCOPE_IDENTITY())";
+
+            string insertOrderItemsSql = @" Insert into OrderItems(OrderId, ProductId, Quantity, GrossAmount, Status, CreatedBy, CreatedDate, IsDeleted)
+                                            values (@OrderId, @ProductId, @Quantity, @GrossAmount, @Status, @CreatedBy, @CreatedDate, @IsDeleted)";
 
             try
             {
@@ -67,26 +55,35 @@ namespace OrderServiceGrpc.Repository
 
                 try
                 {
-                    object[] parameters = { new
-                            {
-                                OrderDate = request.OrderDate,
-                                UserId = request.UserId,
-                                Status = request.Status,
-                                NetAmount = request.NetAmount,
-                                CreatedBy = userId,
-                                CreatedDate = DateTime.Now,
-                                IsDeleted = false
-                            }
-                        };
+                    var insertOrderParameters = new
+                    {
+                        OrderDate = request.OrderDate,
+                        UserId = request.UserId,
+                        Status = request.Status,
+                        NetAmount = request.NetAmount,
+                        CreatedBy = userId,
+                        CreatedDate = DateTime.Now,
+                        IsDeleted = false
+                    };
 
-                    int insertedOrderId = await conn.ExecuteScalarAsync<int>(sql, parameters);
+                    int insertedOrderId = await conn.ExecuteScalarAsync<int>(insertOrderSql, insertOrderParameters, t);
 
                     foreach (var item in request.OrderItems)
                     {
-                        item.OrderId = insertedOrderId;
-                    }
+                        var parameters = new
+                        {
+                            OrderId = insertedOrderId,
+                            ProductId = item.ProductId,
+                            Quantity = item.Quatity,
+                            GrossAmount = item.GrossAmount,
+                            Status = item.Status,
+                            CreatedBy = userId,
+                            CreatedDate = DateTime.Now,
+                            IsDeleted = false
+                        };
 
-                    await conn.BulkInsertAsync<OrderItemModel>(request.OrderItems);
+                        await conn.ExecuteAsync(insertOrderItemsSql, parameters, t);
+                    }
 
                     await t.CommitAsync();
                 }
@@ -107,9 +104,36 @@ namespace OrderServiceGrpc.Repository
             }
         }
 
-        public Task<bool> DeleteOrder(int request, int userId)
+        public async Task<bool> DeleteOrder(int request, int userId)
         {
-            throw new NotImplementedException();
+            const string deleteOrderItemsSql = @"update OrderItems set IsDeleted = 1, ModifiedBy = @ModifiedBy, ModifiedDate = @ModifiedDate where OrderId = @OrderId";
+            const string deleteOrderSql = @"update Orders set IsDeleted = 1, ModifiedBy = @ModifiedBy, ModifiedDate = @ModifiedDate where Id = @OrderId";
+
+            await using SqlConnection conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            var parameters = new
+            {
+                ModifiedBy = userId,
+                ModifiedDate = DateTime.Now
+            };
+
+            await using DbTransaction transaction = await conn.BeginTransactionAsync();
+
+            try
+            {
+                await conn.ExecuteAsync(deleteOrderItemsSql, parameters, transaction);
+                await conn.ExecuteAsync(deleteOrderSql, parameters, transaction);
+
+                await transaction.CommitAsync();
+            }
+            catch(Exception e)
+            {
+                await transaction.RollbackAsync();
+                return false;
+            }
+
+            return true;
         }
 
         public Task<List<OrderModel>> GetAllOrders(OrderListRequest request)
@@ -145,8 +169,9 @@ namespace OrderServiceGrpc.Repository
                                                 IsDeleted = @IsDeleted
                                             WHERE Id = @Id";
 
-            const string deleteOrderItemsSql = @"DELETE FROM OrderItems WHERE OrderId = @OrderId";
-
+            const string deleteOrderItemsSql = @"update OrderItems set IsDeleted = 1, ModifiedBy = @ModifiedBy, ModifiedDate = @ModifiedDate where OrderId = @OrderId";
+            const string insertOrderItemsSql = @" Insert into OrderItems(OrderId, ProductId, Quantity, GrossAmount, Status, CreatedBy, CreatedDate, IsDeleted)
+                                            values (@OrderId, @ProductId, @Quantity, @GrossAmount, @Status, @CreatedBy, @CreatedDate, @IsDeleted)";
             try
             {
                 await using var conn = new SqlConnection(_connectionString);
@@ -158,10 +183,10 @@ namespace OrderServiceGrpc.Repository
                 {
                     var parameters = new
                     {
-                        request.OrderDate,
-                        request.UserId,
-                        request.Status,
-                        request.NetAmount,
+                        OrderDate= request.OrderDate,
+                        UserId=request.UserId,
+                        Status =request.Status,
+                        NetAmount = request.NetAmount,
                         ModifiedBy = userId,
                         ModifiedDate = DateTime.UtcNow,
                         IsDeleted = false,
@@ -169,18 +194,26 @@ namespace OrderServiceGrpc.Repository
                     };
 
                     await conn.ExecuteAsync(updateOrderSql, parameters, transaction);
-
-                    // Optional: Use proper comparison logic here
-                    // Assume we always want to replace items for now
                     await conn.ExecuteAsync(deleteOrderItemsSql, new { OrderId = request.Id }, transaction);
 
-                    // Set the OrderId in each item before inserting
                     foreach (var item in request.OrderItems)
+                    {
                         item.OrderId = request.Id;
 
-                    var parameters2 = new { };
+                        var orderItemParams = new
+                        {
+                            OrderId = request.Id,
+                            ProductId = item.ProductId,
+                            Quantity = item.Quatity,
+                            GrossAmount = item.GrossAmount,
+                            Status = item.Status,
+                            CreatedBy = userId,
+                            CreatedDate = DateTime.Now,
+                            IsDeleted = false
+                        };
 
-                    await conn.BulkInsertAsync(request.OrderItems, transaction);
+                        await conn.ExecuteAsync(insertOrderItemsSql,item, transaction);
+                    }
 
                     await transaction.CommitAsync();
                     return true;
@@ -188,13 +221,11 @@ namespace OrderServiceGrpc.Repository
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    // Log ex (optional)
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                // Log ex (optional)
                 return false;
             }
         }
