@@ -1,12 +1,15 @@
 ﻿using Dapper;
+using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Data.SqlClient;
 using OrderServiceGrpc.Models;
 using OrderServiceGrpc.Protos;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Transactions;
 using Z.Dapper.Plus;
+using static Dapper.SqlMapper;
 
 namespace OrderServiceGrpc.Repository
 {
@@ -19,7 +22,7 @@ namespace OrderServiceGrpc.Repository
         Task<bool> UpdateOrder(OrderModel request, int userId);
         Task<bool> DeleteOrder(int requestId, int userId);
         Task<int> GetOrderCount();
-        Task<List<OrderModel>> GetAllOrdersWithPagination(OrderListRequest request);
+        Task<Tuple<int, List<OrderModel>>> GetAllOrdersWithPagination(OrderListRequest request);
         #endregion
 
         #region OrderItems
@@ -136,24 +139,100 @@ namespace OrderServiceGrpc.Repository
             return true;
         }
 
-        public Task<List<OrderModel>> GetAllOrders(OrderListRequest request)
+        public async Task<List<OrderModel>> GetAllOrders(OrderListRequest request)
         {
-            throw new NotImplementedException();
+            string sql = @"select * from Orders order by OrderDate desc";
+            try
+            {
+                await using SqlConnection conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                return (List<OrderModel>)await conn.QueryAsync<OrderModel>(sql);
+            }
+            catch(Exception e)
+            {
+                return null;
+            }
         }
 
-        public Task<List<OrderModel>> GetAllOrdersWithPagination(OrderListRequest request)
+        public async Task<Tuple<int,List<OrderModel>>> GetAllOrdersWithPagination(OrderListRequest request)
         {
-            throw new NotImplementedException();
+            const string sql = @"   declare @TotalOrders int, @TotalPages int
+                                    select
+	                                    o.*
+                                    from Orders o
+                                    order by o.OrderDate desc
+                                    offset (@pageSize-1)*@PageNumber rows
+                                    fetch next @PageSize rows only
+
+                                    select @TotalOrders = count(*) from Orders
+                                    select @TotalPages = (@TotalOrders/@PageSize) + 1
+
+                                    select @TotalPages TotalPages";
+            try
+            {
+                await using SqlConnection conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                var parameters = new
+                {
+                    PageNumber = request.PageNumber,
+                    PageSize = request.PageSize
+                };
+
+                GridReader reader = await conn.QueryMultipleAsync(sql, parameters);
+
+                List<OrderModel> orders = reader.Read<OrderModel>().ToList();
+                int totalPages = reader.ReadSingle<int>();
+
+                return Tuple.Create<int, List<OrderModel>>(totalPages,orders);
+            }
+            catch(Exception e)
+            {
+                return null;
+            }
         }
 
-        public Task<OrderModel> GetOrderById(OrderIdRequest request)
+        public async Task<OrderModel> GetOrderById(OrderIdRequest request)
         {
-            throw new NotImplementedException();
+            const string fetchOrderSql = @"select * from Orders where Id = @OrderId;
+                                            select * from OrderItems where OrderId = @OrderId and IsDeleted = 0;";
+            
+            try
+            {
+                await using SqlConnection conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                var parameters = new { OrderId = request.Id };
+
+                GridReader reader = await conn.QueryMultipleAsync(fetchOrderSql, parameters);
+
+                OrderModel model =  reader.ReadFirst<OrderModel>();
+
+                model.OrderItems = reader.Read<OrderItemModel>().ToList();
+
+                return model;
+            }
+            catch(Exception e)
+            {
+                return null;
+            }
         }
 
-        public Task<int> GetOrderCount()
+        public async Task<int> GetOrderCount()
         {
-            throw new NotImplementedException();
+            string sql = @"select Count(*) from Orders";
+            try
+            {
+                await using SqlConnection conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                return await conn.ExecuteScalarAsync<int>(sql);
+            }
+            catch(Exception e)
+            {
+                return 0;
+            }
         }
 
         public async Task<bool> UpdateOrder(OrderModel request, int userId)

@@ -16,7 +16,7 @@ namespace OrderServiceGrpc.Services
         {
             return base.DeleteOrder(request, context);
         }
-        public override Task<OrderListResponse> GetAllOrders(Empty request, ServerCallContext context)
+        public override Task<OrderListResponse> GetAllOrders(OrderListRequest request, ServerCallContext context)
         {
             return base.GetAllOrders(request, context);
         }
