@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "google/protobuf/Timestamp.proto";
+import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 option csharp_namespace = "OrderServiceGrpc.Protos";
 
@@ -73,7 +73,8 @@ message OrderResponse {
 message OrderListResponse {
   bool status = 1;
   string message = 2;
-  repeated Order orders = 3;
+  int32 totalPages = 3;
+  repeated Order orders = 4;
 }
 
 // ====== Service Definition ======

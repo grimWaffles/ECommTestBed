@@ -1,4 +1,7 @@
-﻿namespace OrderServiceGrpc.Models
+﻿using Google.Protobuf.WellKnownTypes;
+using OrderServiceGrpc.Protos;
+
+namespace OrderServiceGrpc.Models
 {
     public class OrderModel
     {

@@ -207,7 +207,7 @@ namespace OrderServiceGrpc.Repository
 
                 GridReader reader = await conn.QueryMultipleAsync(fetchOrderSql, parameters);
 
-                OrderModel model =  reader.ReadFirst<OrderModel>();
+                OrderModel model = reader.Read<OrderModel>().First();
 
                 model.OrderItems = reader.Read<OrderItemModel>().ToList();
 
