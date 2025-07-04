@@ -33,7 +33,7 @@ namespace ProductServiceGrpc.Repository
         // READ (Get by Id)
         public async Task<SellerModel> GetSellerByIdAsync(int id)
         {
-            return await _db.Sellers
+            return await _db.Sellers.AsNoTracking()
                             .Include(s => s.Products)
                             .FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
         }
@@ -42,6 +42,7 @@ namespace ProductServiceGrpc.Repository
         public async Task<List<SellerModel>> GetAllSellersAsync()
         {
             return await _db.Sellers
+                            .AsNoTracking()
                             .Where(s => !s.IsDeleted)
                             .Include(s => s.Products)
                             .ToListAsync();
