@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace EfCoreTutorial.Entity.ECommerceModels
 {
     [Index(nameof(CategoryName), IsUnique = true)]
+    [Table("ProductCategories")]
     public class ProductCategoryModel
     {
         public ProductCategoryModel()

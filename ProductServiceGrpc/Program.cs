@@ -15,7 +15,7 @@ public class Program
         //Add Database to the server
         builder.Services.AddDbContext<AppDbContext>(options =>
             //options.UseSqlServer(builder.Configuration.GetConnectionString("HomeServer"))
-            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+            options.UseSqlServer(builder.Configuration.GetConnectionString("HomeServer"))
         );
 
         //Add Dependency Injections

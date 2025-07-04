@@ -7,7 +7,7 @@ namespace ProductServiceGrpc.Repository
     public interface IProductCategoryRepository
     {
         Task<ProductCategoryModel> CreateCategoryAsync(ProductCategoryModel category);
-        Task<ProductCategoryModel?> GetCategoryByIdAsync(int id);
+        Task<ProductCategoryModel> GetCategoryByIdAsync(int id);
         Task<List<ProductCategoryModel>> GetAllCategoriesAsync();
         Task<bool> UpdateCategoryAsync(ProductCategoryModel updatedCategory);
         Task<bool> DeleteCategoryAsync(int id, int modifiedBy);
@@ -32,11 +32,18 @@ namespace ProductServiceGrpc.Repository
         }
 
         // READ (Get by Id)
-        public async Task<ProductCategoryModel?> GetCategoryByIdAsync(int id)
+        public async Task<ProductCategoryModel> GetCategoryByIdAsync(int id)
         {
-            return await _db.ProductCategories
+            try
+            {
+                return await _db.ProductCategories
                             .Include(c => c.Products)
                             .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
+            }
+            catch(Exception e)
+            {
+                return null;
+            }
         }
 
         // READ (Get all)
