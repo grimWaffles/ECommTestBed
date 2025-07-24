@@ -43,7 +43,7 @@ namespace UserServiceGrpc.Repository
         {
             try
             {
-                _db.Users.Remove(user);
+                _db.Users.Update(user);
                 _db.SaveChangesAsync();
 
                 return 1;
@@ -58,7 +58,7 @@ namespace UserServiceGrpc.Repository
         {
             try
             {
-                UserModel u = await _db.Users.Include(u => u.Role).Where(u => u.Id == id).FirstAsync();
+                UserModel u = await _db.Users.AsNoTracking().Include(u => u.Role).Where(u => u.Id == id).FirstAsync();
 
                 return u;
             }
@@ -72,7 +72,7 @@ namespace UserServiceGrpc.Repository
         {
             try
             {
-                List<UserModel> list = await _db.Users.Include(u => u.Role).ToListAsync();
+                List<UserModel> list = await _db.Users.AsNoTracking().Include(u => u.Role).ToListAsync();
 
                 return list;
             }

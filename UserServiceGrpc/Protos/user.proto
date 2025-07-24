@@ -4,30 +4,36 @@ import "google/protobuf/empty.proto";
 option csharp_namespace = "UserServiceGrpc";
 
 service User{
-	rpc GetUserByIdAsync (UserRequestSingle) returns (UserResponseSingle);
-	rpc GetAllUsersStream (google.protobuf.Empty) returns (stream UserResponseSingle);
+	//CRUD Operations
+	rpc GetUserByIdAsync (UserRequestSingle) returns (CreateUserRequest);
+	rpc GetAllUsersStream (google.protobuf.Empty) returns (stream CreateUserRequest);
 	rpc GetAllUsers (google.protobuf.Empty) returns (UserResponseMultiple);
 	
+	rpc CreateUser(CreateUserRequest) returns (UserCrudResponse);
+	rpc UpdateUser(CreateUserRequest) returns (UserCrudResponse);
+	rpc DeleteUser(UserRequestSingle) returns (UserCrudResponse);
+
+	//User Authentication
 	rpc LoginUser ( UserLoginRequest ) returns (UserLoginResponse);
+	rpc LogoutUser ( UserRequestSingle ) returns (UserLoginResponse);
 }
 
 message UserRequestSingle{
 	int32 id = 1;
-}
-
-message UserResponseSingle{
-	int32 status = 1;
 	int32 userId = 2;
-	string username = 3;
-	string email = 4;
-	string roleName = 5;
-	string errorMessage = 6;
+	string accessToken = 3;
 }
 
-message UserResponseMultiple {
-	int32 status = 1;
-	repeated UserResponseSingle list= 2;
-	string errorMessage = 3;
+message CreateUserRequest{
+	int32 userId = 1;
+	string username = 2;
+	string password = 3;
+	string email = 4;
+	string mobileNo = 5;
+	int32 roleId = 6;
+	int32 isDeleted = 7;
+	string roleName = 8;
+	int32 id = 9;
 }
 
 message UserLoginRequest{
@@ -36,8 +42,18 @@ message UserLoginRequest{
 }
 
 message UserLoginResponse{
-	string username = 1;
-	int32 status = 2;
-	string errorMessage = 3;
-	string accessToken = 4;
+	int32 userId = 1;
+	string username = 2;
+	string accessToken = 3;
+	int32 roleId = 4;
+	string roleName = 5;
+}
+
+message UserCrudResponse{
+	int32 status = 1;
+	string errorMesage = 2;
+}
+
+message UserResponseMultiple{
+	repeated CreateUserRequest users = 1;
 }
