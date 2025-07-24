@@ -1,6 +1,8 @@
 ﻿using Azure;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.IdentityModel.Tokens;
+using UserServiceGrpc.Helpers;
 using UserServiceGrpc.Models.Entities;
 using UserServiceGrpc.Repository;
 
@@ -15,141 +17,166 @@ namespace UserServiceGrpc.Services
             _repo = userRepository;
         }
 
-        public override async Task<UserResponseSingle> GetUserByIdAsync(UserRequestSingle request, ServerCallContext context)
+        //Private functions
+        private UserModel ConvertRequestToModel(CreateUserRequest r)
         {
-            UserResponseSingle response = new UserResponseSingle();
+            return new UserModel
+            {
+                Id = r.Id,
+                Username = r.Username,
+                Email = r.Email,
+                Password = r.Password,
+                MobileNo = r.MobileNo,
+                RoleId = r.RoleId,
+                IsDeleted = Convert.ToBoolean(r.IsDeleted)
+            };
+        }
+
+        private CreateUserRequest ConvertModelToRequest(UserModel r)
+        {
+            return new CreateUserRequest
+            {
+                Id = r.Id,
+                Username = r.Username,
+                Email = r.Email,
+                Password = r.Password,
+                MobileNo = r.MobileNo,
+                RoleId = r.RoleId,
+                IsDeleted = Convert.ToInt32(r.IsDeleted)
+            };
+        }
+        //CRUD Operations
+        public override async Task<UserCrudResponse> CreateUser(CreateUserRequest request, ServerCallContext context)
+        {
+            UserModel userModel = await _repo.GetUserByUsername(request.Username);
+            UserCrudResponse response = new UserCrudResponse();
+
+            if (userModel != null)
+            {
+                response.Status = 0;
+
+                if (userModel.Username != request.Username)
+                {
+                    response.ErrorMesage = response.ErrorMesage.IsNullOrEmpty() ? "Username already exists" : response.ErrorMesage + " | " + "Username already exists";
+                }
+                if (userModel.Email == request.Email)
+                {
+                    response.ErrorMesage = response.ErrorMesage.IsNullOrEmpty() ? "Email ID already exists" : response.ErrorMesage + " | " + "Email ID already exists";
+                }
+                if (userModel.MobileNo == request.MobileNo)
+                {
+                    response.ErrorMesage = response.ErrorMesage.IsNullOrEmpty() ? "Mobile number already exists" : response.ErrorMesage + " | " + "Mobile number already exists";
+                }
+
+                return response;
+            }
+
+            UserModel requestModel = ConvertRequestToModel(request);
+            requestModel.CreatedBy = request.UserId; requestModel.CreatedDate = DateTime.Now;
+
+            int status = _repo.CreateUser(requestModel);
+
+            response.Status = status;
+            response.ErrorMesage = status == 1 ? "User added successfully" : "Failed to add user";
+
+            return response;
+        }
+
+        public override async Task<UserCrudResponse> UpdateUser(CreateUserRequest request, ServerCallContext context)
+        {
+            UserModel userModel = await _repo.GetUserByUsername(request.Username);
+            UserCrudResponse response = new UserCrudResponse();
+
+            if (userModel == null)
+            {
+                response.Status = 0;
+                response.ErrorMesage = "User does not exist";
+                return response;
+            }
+
+            UserModel requestModel = ConvertRequestToModel(request);
+            requestModel.ModifiedBy = request.UserId; requestModel.ModifiedDate = DateTime.Now;
+
+            int status = _repo.UpdateUser(requestModel);
+
+            response.Status = status;
+            response.ErrorMesage = status == 1 ? "User updated successfully" : "Failed to update user";
+
+            return response;
+        }
+
+        public override async Task<UserCrudResponse> DeleteUser(UserRequestSingle request, ServerCallContext context)
+        {
+            UserModel userModel = await _repo.GetUserById(request.Id);
+            UserCrudResponse response = new UserCrudResponse();
+
+            if (userModel == null)
+            {
+                response.Status = 0;
+                response.ErrorMesage = "User does not exist";
+                return response;
+            }
+            userModel.IsDeleted = true; userModel.ModifiedDate = DateTime.Now; ; userModel.ModifiedBy = request.UserId;
+
+            int status = _repo.UpdateUser(userModel);
+
+            response.Status = status;
+            response.ErrorMesage = status == 1 ? "User updated successfully" : "Failed to update user";
+
+            return response;
+        }
+
+        public override async Task<CreateUserRequest> GetUserByIdAsync(UserRequestSingle request, ServerCallContext context)
+        {
             UserModel user = await _repo.GetUserById(request.Id);
 
             if (user == null)
             {
-                response.Status = -1;
-                response.ErrorMessage = "User does not exist";
-
-                return await Task.FromResult(response);
+                return new CreateUserRequest()
+                {
+                    Id = 0
+                };
             }
 
-            response.Status = 1;
-            response.UserId = user.Id;
-            response.Username = user.Username;
-            response.Email = user.Email;
-            response.RoleName = user.Role == null ? "" : user.Role.Name.ToString();
-
-            return await Task.FromResult(response);
+            return ConvertModelToRequest(user);
         }
 
         public override async Task<UserResponseMultiple> GetAllUsers(Empty request, ServerCallContext context)
         {
-            UserResponseMultiple response = new UserResponseMultiple();
+            List<UserModel> users = await _repo.GetUsers();
+
+            if (users == null || users.Count == 0) { return new UserResponseMultiple(); }
+
+            UserResponseMultiple usersResponse = new UserResponseMultiple();
+
+            usersResponse.Users.AddRange(users.Select(r=> ConvertModelToRequest(r)).ToList());
+
+            return usersResponse;
+        }
+
+        public override async Task GetAllUsersStream(Empty request, IServerStreamWriter<CreateUserRequest> responseStream, ServerCallContext context)
+        {
+            CreateUserRequest response = new CreateUserRequest();
 
             try
             {
                 List<UserModel> userModels = await _repo.GetUsers();
-
-                if (userModels == null)
-                {
-                    response.Status = -1;
-                    response.ErrorMessage = "Failed to get users";
-
-                    return await Task.FromResult(response);
-                }
 
                 foreach (UserModel user in userModels)
                 {
-                    response.List.Add(new UserResponseSingle()
-                    {
-                        Status = 1,
-                        UserId = user.Id,
-                        Username = user.Username,
-                        Email = user.Email,
-                        RoleName = user.Role == null ? "" : user.Role.Name.ToString(),
-                    });
-
-                    response.Status = 1;
-                    response.ErrorMessage = "";
-                }
-
-                return await Task.FromResult(response);
-            }
-            catch (Exception e)
-            {
-                response.Status = -1;
-                response.ErrorMessage = "Failed to get users";
-
-                return await Task.FromResult(response);
-            }
-        }
-
-        public override async Task GetAllUsersStream(Empty request, IServerStreamWriter<UserResponseSingle> responseStream, ServerCallContext context)
-        {
-            UserResponseSingle response = new UserResponseSingle();
-
-            try
-            {
-                List<UserModel> userModels = await _repo.GetUsers();
-
-                if (userModels == null)
-                {
-                    response.Status = -1;
-                    response.ErrorMessage = "Failed to get users";
-
-                    await responseStream.WriteAsync(response);
-                }
-                else
-                {
-                    foreach (UserModel user in userModels)
-                    {
-                        response = new UserResponseSingle()
-                        {
-                            Status = 1,
-                            UserId = user.Id,
-                            Username = user.Username,
-                            Email = user.Email,
-                            RoleName = user.Role == null ? "" : user.Role.Name.ToString(),
-                        };
-
-                        await responseStream.WriteAsync(response);
-                    }
+                    await responseStream.WriteAsync(ConvertModelToRequest(user));
                 }
             }
             catch (Exception e)
             {
-                response.Status = -1;
-                response.ErrorMessage = "Failed to get users";
-
+                response.Id = 0;
                 await responseStream.WriteAsync(response);
             }
         }
 
-        public override async Task<UserLoginResponse> LoginUser(UserLoginRequest request, ServerCallContext context)
-        {
-            UserLoginResponse response = new UserLoginResponse();
-            response.Status = -1;
-            response.ErrorMessage = "Failed to verify login";
+        //User Authentication
 
-            try
-            {
-                UserModel u = await _repo.GetUserByUsername(request.Username);
 
-                if (u == null)
-                {
-                    return await Task.FromResult(response);
-                }
 
-                if (u.Password != request.Password)
-                {
-                    response.ErrorMessage = "Password is incorrect!";
-
-                    return await Task.FromResult(response);
-                }
-
-                response.Status = 1; response.ErrorMessage = "Login successful!"; response.AccessToken = "token";
-
-                return await Task.FromResult(response);
-            }
-            catch (Exception e)
-            {
-                return await Task.FromResult(response);
-            }
-        }
     }
 }

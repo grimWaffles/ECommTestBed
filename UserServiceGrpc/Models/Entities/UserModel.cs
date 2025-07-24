@@ -33,7 +33,7 @@ namespace UserServiceGrpc.Models.Entities
         [MaxLength(11)]
         public string MobileNo { get; set; }
 
-        public int? RoleId { get; set; }
+        public int RoleId { get; set; }
 
         [Required]
         public DateTime CreatedDate { get; set; }
