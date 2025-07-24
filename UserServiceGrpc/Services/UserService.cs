@@ -45,6 +45,7 @@ namespace UserServiceGrpc.Services
                 IsDeleted = Convert.ToInt32(r.IsDeleted)
             };
         }
+        
         //CRUD Operations
         public override async Task<UserCrudResponse> CreateUser(CreateUserRequest request, ServerCallContext context)
         {
