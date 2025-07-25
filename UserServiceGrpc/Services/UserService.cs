@@ -1,4 +1,7 @@
-﻿using Azure;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Azure;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.IdentityModel.Tokens;
@@ -17,6 +20,14 @@ namespace UserServiceGrpc.Services
             _repo = userRepository;
         }
 
+        //Test Functions
+        public override async Task<TestResponse> TestService(Empty request, ServerCallContext context)
+        {
+            TestResponse response = new TestResponse();
+            response.ServiceStatus = "Service is running.";
+
+            return await Task.FromResult(response);
+        }
         //Private functions
         private UserModel ConvertRequestToModel(CreateUserRequest r)
         {
@@ -45,7 +56,7 @@ namespace UserServiceGrpc.Services
                 IsDeleted = Convert.ToInt32(r.IsDeleted)
             };
         }
-        
+
         //CRUD Operations
         public override async Task<UserCrudResponse> CreateUser(CreateUserRequest request, ServerCallContext context)
         {
@@ -150,7 +161,7 @@ namespace UserServiceGrpc.Services
 
             UserResponseMultiple usersResponse = new UserResponseMultiple();
 
-            usersResponse.Users.AddRange(users.Select(r=> ConvertModelToRequest(r)).ToList());
+            usersResponse.Users.AddRange(users.Select(r => ConvertModelToRequest(r)).ToList());
 
             return usersResponse;
         }
@@ -176,8 +187,77 @@ namespace UserServiceGrpc.Services
         }
 
         //User Authentication
+        public override async Task<UserLoginResponse> LoginUser(UserLoginRequest request, ServerCallContext context)
+        {
+            UserLoginResponse response = new UserLoginResponse();
+            UserModel model = await _repo.GetUserByUsername(request.Username);
 
+            if (model == null)
+            {
+                response.UserId = 0;
+                response.ErrorMessage = "User does not exist";
 
+                return response;
+            }
 
+            ///Todo
+            /// Hash the password before checking
+
+            if (model.Password != request.Password)
+            {
+                response.UserId = 0;
+                response.ErrorMessage = "Password is incorrect";
+
+                return response;
+            }
+
+            response.UserId = model.Id;
+            response.Username = model.Username;
+            response.AccessToken = GenerateJwtToken(model);
+            response.RoleId = model.RoleId;
+            response.RoleName = model.Role.Name.ToString();
+            response.ErrorMessage = "";
+
+            return response;
+        }
+
+        public override async Task<UserLoginResponse> LogoutUser(UserRequestSingle request, ServerCallContext context)
+        {
+            UserLoginResponse response = new UserLoginResponse();
+            response.UserId = request.UserId;
+            response.ErrorMessage = "Logout successful";
+
+            return response;
+        }
+        private string GenerateJwtToken(UserModel user)
+        {
+            //Generate a GUID for the token and save it for later
+            string guID = Guid.NewGuid().ToString();
+
+            //Add the necessary claims to the token
+            var claims = new[]{
+                new Claim(JwtRegisteredClaimNames.Sub, Convert.ToString(user.Id)),
+                new Claim(JwtRegisteredClaimNames.Sub, Convert.ToString(user.RoleId)),
+                new Claim(JwtRegisteredClaimNames.Sub, Convert.ToString(user.Username)),
+                new Claim(JwtRegisteredClaimNames.Jti, guID)
+            };
+
+            //Generate Key
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("your_super_secret_key"));
+
+            //Generate the credentials
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            //Issue the token
+            var token = new JwtSecurityToken(
+                issuer: "",
+                audience: "",
+                claims: claims,
+                expires: DateTime.Now.AddHours(24),
+                signingCredentials: creds
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
     }
 }

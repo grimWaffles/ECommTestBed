@@ -4,6 +4,9 @@ import "google/protobuf/empty.proto";
 option csharp_namespace = "UserServiceGrpc";
 
 service User{
+	//Test Functions
+	rpc TestService (google.protobuf.Empty) returns (TestResponse); 
+
 	//CRUD Operations
 	rpc GetUserByIdAsync (UserRequestSingle) returns (CreateUserRequest);
 	rpc GetAllUsersStream (google.protobuf.Empty) returns (stream CreateUserRequest);
@@ -16,6 +19,10 @@ service User{
 	//User Authentication
 	rpc LoginUser ( UserLoginRequest ) returns (UserLoginResponse);
 	rpc LogoutUser ( UserRequestSingle ) returns (UserLoginResponse);
+}
+
+message TestResponse{
+	string serviceStatus = 1;
 }
 
 message UserRequestSingle{
@@ -47,6 +54,7 @@ message UserLoginResponse{
 	string accessToken = 3;
 	int32 roleId = 4;
 	string roleName = 5;
+	string errorMessage = 6;
 }
 
 message UserCrudResponse{
