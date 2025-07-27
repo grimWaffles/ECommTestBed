@@ -46,7 +46,7 @@ namespace ProductServiceGrpc.Repository
                 return await _db.Products
                             .Include(p => p.Seller)
                             .Include(p => p.ProductCategory)
-                            .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+                            .FirstAsync(p => p.Id == id && !p.IsDeleted);
             }
             catch(Exception e)
             {

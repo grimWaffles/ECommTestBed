@@ -4,45 +4,40 @@ import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 option csharp_namespace = "ProductServiceGrpc";
 
-message ProductCategoryRequest {
-  int32 id = 1;
+message ProductCategoryDto{
+	int32 id= 1;
+	string categoryName = 2;
 }
 
-message ProductCategoryCreateRequest {
-  string categoryName = 1;
-  int32 createdBy = 2;
+message ProductCategoryCreateRequest{ //send DTO in response | Use for update request also
+	int32 userId = 1;
+	ProductCategoryDto dto = 2;
 }
 
-message ProductCategoryUpdateRequest {
-  int32 id = 1;
-  string categoryName = 2;
-  int32 modifiedBy = 3;
+message ProductCategoryCreateResponse{
+	int32 status = 1;
+	string errorMessage = 2;
+	ProductCategoryDto dto = 3;
 }
 
-message ProductCategoryDeleteRequest {
-  int32 id = 1;
-  int32 modifiedBy = 2;
+message ProductCategoryDeleteRequest{
+	int32 id= 1;
+	int32 userid = 2;
 }
 
-message ProductCategoryResponse {
-  int32 id = 1;
-  string categoryName = 2;
-  int32 createdBy = 3;
-  google.protobuf.Timestamp createdDate = 4;
-  google.protobuf.Timestamp modifiedDate = 5;
-  int32 modifiedBy = 6;
-  bool isDeleted = 7;
+message ProductCategorySingleRequest{ //send DTO as Response
+	int32 id = 1;
 }
 
-message ProductCategoryListResponse {
-  repeated ProductCategoryResponse categories = 1;
+message ProductCategoryMultipleResponse{
+	repeated ProductCategoryDto dtos = 1;
 }
 
 service ProductCategory {
-  rpc CreateCategory (ProductCategoryCreateRequest) returns (ProductCategoryResponse);
-  rpc GetCategoryById (ProductCategoryRequest) returns (ProductCategoryResponse);
-  rpc GetAllCategories (google.protobuf.Empty) returns (ProductCategoryListResponse);
-  rpc UpdateCategory (ProductCategoryUpdateRequest) returns (ProductCategoryResponse);
-  rpc DeleteCategory (ProductCategoryDeleteRequest) returns (google.protobuf.Empty);
+  rpc CreateCategory (ProductCategoryCreateRequest) returns (ProductCategoryCreateResponse);
+  rpc GetCategoryById (ProductCategorySingleRequest) returns (ProductCategoryDto);
+  rpc GetAllCategories (google.protobuf.Empty) returns (ProductCategoryMultipleResponse);
+  rpc UpdateCategory (ProductCategoryCreateRequest) returns (ProductCategoryCreateResponse);
+  rpc DeleteCategory (ProductCategoryDeleteRequest) returns (ProductCategoryCreateResponse);
 }
 

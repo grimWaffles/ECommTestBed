@@ -12,7 +12,7 @@ namespace API_Gateway.Services
         Task<ProductCategoryResponse> UpdateCategoryAsync(ProductCategoryUpdateRequest request);
         Task DeleteCategoryAsync(int categoryId, int modifiedBy);
     }
-    public class ProductCategoryService :IProductCategoryService
+    public class ProductCategoryService : IProductCategoryService
     {
         private readonly ProductCategory.ProductCategoryClient _client;
 

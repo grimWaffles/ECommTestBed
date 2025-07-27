@@ -1,101 +1,172 @@
 ﻿using EfCoreTutorial.Entity.ECommerceModels;
-using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using ProductServiceGrpc.Database;
 using ProductServiceGrpc.Repository;
+using SellerServiceGrpc;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace ProductServiceGrpc.Services
+public class SellerService : Seller.SellerBase
 {
-    public class SellerService : Seller.SellerBase
+    private readonly ISellerRepository _repo;
+
+    public SellerService(ISellerRepository repo)
     {
-        private readonly ISellerRepository _repo;
+        _repo = repo;
+    }
 
-        public SellerService(ISellerRepository repo)
+    public override async Task<SellerResponse> CreateSeller(SellerRequest request, ServerCallContext context)
+    {
+        try
         {
-            _repo = repo;
-        }
-
-        public override async Task<SellerResponse> CreateSeller(SellerCreateRequest request, ServerCallContext context)
-        {
-            SellerModel seller = new SellerModel
+            var seller = new SellerModel
             {
-                CompanyName = request.CompanyName,
-                Address = request.Address,
-                MobileNo = request.MobileNo,
-                Email = request.Email,
-                Rating = (decimal)request.Rating,
-                CreatedBy = request.CreatedBy,
+                CompanyName = request.Dto.CompanyName,
+                Address = request.Dto.Address,
+                MobileNo = request.Dto.MobileNo,
+                Email = request.Dto.Email,
+                Rating = (decimal)request.Dto.Rating,
+                CreatedBy = request.UserId,
                 CreatedDate = DateTime.UtcNow
             };
 
-            try
+            var result = await _repo.CreateSellerAsync(seller);
+
+            return new SellerResponse
             {
-                await _repo.CreateSellerAsync(seller);
-            }
-            catch(Exception e)
-            {
-                return null;
-            }
-
-            return MapToResponse(seller);
+                Status = 1,
+                ErrorMessage = "Seller created successfully",
+                Dto = MapToDto(result)
+            };
         }
-
-        public override async Task<SellerResponse> GetSellerById(SellerRequest request, ServerCallContext context)
-        {
-            SellerModel seller = await _repo.GetSellerByIdAsync(request.Id);
-
-            return seller == null ? null : MapToResponse(seller);
-        }
-
-        public override async Task<SellerListResponse> GetAllSellers(Google.Protobuf.WellKnownTypes.Empty request, ServerCallContext context)
-        {
-            var sellers = await _repo.GetAllSellersAsync();
-
-            var response = new SellerListResponse();
-            response.Sellers.AddRange(sellers.Select(MapToResponse));
-            return response;
-        }
-
-        public override async Task<SellerResponse> UpdateSeller(SellerUpdateRequest request, ServerCallContext context)
-        {
-            var seller = await _repo.GetSellerByIdAsync(request.Id);
-
-            if (seller == null || seller.IsDeleted) return null;
-
-            await _repo.UpdateSellerAsync(seller);
-
-            return MapToResponse(seller);
-        }
-
-        public override async Task<Google.Protobuf.WellKnownTypes.Empty> DeleteSeller(SellerDeleteRequest request, ServerCallContext context)
-        {
-            var seller = await _repo.GetSellerByIdAsync(request.Id);
-
-            if (seller != null && !seller.IsDeleted)
-            {
-                await _repo.DeleteSellerAsync(request.Id, request.ModifiedBy);
-            }
-
-            return new Google.Protobuf.WellKnownTypes.Empty();
-        }
-
-        private SellerResponse MapToResponse(SellerModel seller)
+        catch (Exception ex)
         {
             return new SellerResponse
             {
-                Id = seller.Id,
-                CompanyName = seller.CompanyName,
-                Address = seller.Address,
-                MobileNo = seller.MobileNo,
-                Email = seller.Email,
-                Rating = (double)seller.Rating,
-                CreatedBy = seller.CreatedBy,
-                CreatedDate = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(seller.CreatedDate.ToUniversalTime()),
-                ModifiedDate = seller.ModifiedDate.HasValue ? Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(seller.ModifiedDate.Value.ToUniversalTime()) : null,
-                ModifiedBy = seller.ModifiedBy ?? 0,
-                IsDeleted = seller.IsDeleted
+                Status = -1,
+                ErrorMessage = $"Failed to create seller: {ex.Message}"
             };
         }
     }
 
+    public override async Task<SellerDto> GetSellerById(SellerSingleRequest request, ServerCallContext context)
+    {
+        try
+        {
+            var seller = await _repo.GetSellerByIdAsync(request.Id);
+            if (seller == null)
+                throw new RpcException(new Status(StatusCode.NotFound, "Seller not found"));
+
+            return MapToDto(seller);
+        }
+        catch (Exception ex)
+        {
+            throw new RpcException(new Status(StatusCode.Internal, $"Error fetching seller: {ex.Message}"));
+        }
+    }
+
+    public override async Task<SellerMultipleResponse> GetAllSellers(Empty request, ServerCallContext context)
+    {
+        try
+        {
+            var sellers = await _repo.GetAllSellersAsync();
+            var response = new SellerMultipleResponse();
+            response.Sellers.AddRange(sellers.Select(MapToDto));
+            return response;
+        }
+        catch (Exception ex)
+        {
+            throw new RpcException(new Status(StatusCode.Internal, $"Error retrieving sellers: {ex.Message}"));
+        }
+    }
+
+    public override async Task<SellerResponse> UpdateSeller(SellerRequest request, ServerCallContext context)
+    {
+        try
+        {
+            var updatedSeller = new SellerModel
+            {
+                Id = request.Dto.Id,
+                CompanyName = request.Dto.CompanyName,
+                Address = request.Dto.Address,
+                MobileNo = request.Dto.MobileNo,
+                Email = request.Dto.Email,
+                Rating = (decimal)request.Dto.Rating,
+                ModifiedBy = request.UserId,
+                ModifiedDate = DateTime.UtcNow
+            };
+
+            var success = await _repo.UpdateSellerAsync(updatedSeller);
+
+            if (!success)
+            {
+                return new SellerResponse
+                {
+                    Status = -1,
+                    ErrorMessage = "Seller not found or update failed"
+                };
+            }
+
+            return new SellerResponse
+            {
+                Status = 1,
+                ErrorMessage = "Seller updated successfully",
+                Dto = request.Dto
+            };
+        }
+        catch (Exception ex)
+        {
+            return new SellerResponse
+            {
+                Status = -1,
+                ErrorMessage = $"Failed to update seller: {ex.Message}"
+            };
+        }
+    }
+
+    public override async Task<SellerResponse> DeleteSeller(SellerDeleteRequest request, ServerCallContext context)
+    {
+        try
+        {
+            var success = await _repo.DeleteSellerAsync(request.Id, request.UserId);
+            if (!success)
+            {
+                return new SellerResponse
+                {
+                    Status = -1,
+                    ErrorMessage = "Seller not found or already deleted"
+                };
+            }
+
+            return new SellerResponse
+            {
+                Status = 1,
+                ErrorMessage = "Seller deleted successfully",
+                Dto = new SellerDto { Id = request.Id }
+            };
+        }
+        catch (Exception ex)
+        {
+            return new SellerResponse
+            {
+                Status = -1,
+                ErrorMessage = $"Failed to delete seller: {ex.Message}"
+            };
+        }
+    }
+
+    private SellerDto MapToDto(SellerModel seller)
+    {
+        return new SellerDto
+        {
+            Id = seller.Id,
+            CompanyName = seller.CompanyName,
+            Address = seller.Address,
+            MobileNo = seller.MobileNo,
+            Email = seller.Email,
+            Rating = (double)seller.Rating
+        };
+    }
 }

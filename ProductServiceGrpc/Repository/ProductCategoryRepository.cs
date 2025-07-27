@@ -8,9 +8,10 @@ namespace ProductServiceGrpc.Repository
     {
         Task<ProductCategoryModel> CreateCategoryAsync(ProductCategoryModel category);
         Task<ProductCategoryModel> GetCategoryByIdAsync(int id);
+        Task<ProductCategoryModel> GetCategoryByNameAsync(string name);
+
         Task<List<ProductCategoryModel>> GetAllCategoriesAsync();
         Task<bool> UpdateCategoryAsync(ProductCategoryModel updatedCategory);
-        Task<bool> DeleteCategoryAsync(int id, int modifiedBy);
     }
 
     public class ProductCategoryRepository : IProductCategoryRepository
@@ -25,10 +26,16 @@ namespace ProductServiceGrpc.Repository
         // CREATE
         public async Task<ProductCategoryModel> CreateCategoryAsync(ProductCategoryModel category)
         {
-            category.CreatedDate = DateTime.UtcNow;
-            _db.ProductCategories.Add(category);
-            await _db.SaveChangesAsync();
-            return category;
+            try
+            {
+                _db.ProductCategories.Add(category);
+                await _db.SaveChangesAsync();
+                return category;
+            }
+            catch(Exception ex)
+            {
+                return null;
+            }
         }
 
         // READ (Get by Id)
@@ -38,9 +45,21 @@ namespace ProductServiceGrpc.Repository
             {
                 return await _db.ProductCategories
                             .Include(c => c.Products)
-                            .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
+                            .FirstAsync(c => c.Id == id && !c.IsDeleted);
             }
             catch(Exception e)
+            {
+                return null;
+            }
+        }
+
+        public async Task<ProductCategoryModel> GetCategoryByNameAsync(string name)
+        {
+            try
+            {
+                return await _db.ProductCategories.AsNoTracking().Where(pc => pc.CategoryName == name).FirstAsync();
+            }
+            catch (Exception e)
             {
                 return null;
             }
@@ -58,31 +77,16 @@ namespace ProductServiceGrpc.Repository
         // UPDATE
         public async Task<bool> UpdateCategoryAsync(ProductCategoryModel updatedCategory)
         {
-            var existingCategory = await _db.ProductCategories.FindAsync(updatedCategory.Id);
-            if (existingCategory == null || existingCategory.IsDeleted)
+            try
+            {
+                _db.ProductCategories.Update(updatedCategory);
+                await _db.SaveChangesAsync();
+                return true;
+            }
+            catch(Exception e)
+            {
                 return false;
-
-            existingCategory.CategoryName = updatedCategory.CategoryName;
-            existingCategory.ModifiedBy = updatedCategory.ModifiedBy;
-            existingCategory.ModifiedDate = DateTime.UtcNow;
-
-            await _db.SaveChangesAsync();
-            return true;
-        }
-
-        // DELETE (Soft Delete)
-        public async Task<bool> DeleteCategoryAsync(int id, int modifiedBy)
-        {
-            var category = await _db.ProductCategories.FindAsync(id);
-            if (category == null || category.IsDeleted)
-                return false;
-
-            category.IsDeleted = true;
-            category.ModifiedDate = DateTime.UtcNow;
-            category.ModifiedBy = modifiedBy;
-
-            await _db.SaveChangesAsync();
-            return true;
+            }
         }
     }
 
