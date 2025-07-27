@@ -19,8 +19,9 @@ namespace API_Gateway.Services
     {
         private readonly Product.ProductClient _client;
 
-        public ProductService(string grpcServerAddress)
+        public ProductService()
         {
+            string grpcServerAddress = "";
             var channel = GrpcChannel.ForAddress(grpcServerAddress);
             _client = new Product.ProductClient(channel);
         }

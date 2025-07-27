@@ -5,98 +5,103 @@ using Grpc.Core;
 using Microsoft.AspNetCore.Identity;
 namespace API_Gateway.Services
 {
-    public interface IUserService
+    public interface IUserServiceClient
     {
-        Task<UserResponseSingle> GetUserById(int id);
-        Task<UserResponseMultiple> GetAllUsersStream();
-        Task<UserResponseMultiple> GetAllUsers();
-        Task<UserLoginResponse> LoginUser(string username, string password);
+        Task<string> TestServiceAsync();
+        Task<CreateUserRequest> GetUserByIdAsync(int userId);
+        Task<List<CreateUserRequest>> GetAllUsersAsync();
+        Task<List<CreateUserRequest>> GetAllUsersStreamAsync();
+        Task<UserCrudResponse> CreateUserAsync(CreateUserRequest user);
+        Task<UserCrudResponse> UpdateUserAsync(CreateUserRequest user);
+        Task<UserCrudResponse> DeleteUserAsync(int userId);
+        Task<UserLoginResponse> LoginUserAsync(string username, string password);
+        Task<UserLoginResponse> LogoutUserAsync(int userId);
     }
-    public class UserService : IUserService
+    public class UserServiceClient : IUserServiceClient
     {
-        private readonly IConfiguration _config;
-        private string userServiceAddress;
-        private GrpcChannel channel;
-        private User.UserClient userClient;
+        private readonly IConfiguration _configuration;
+        private readonly User.UserClient _client;
+        private readonly string userServiceAddress;
 
-         public UserService(IConfiguration configuration)
+        public UserServiceClient(IConfiguration configuration)
         {
-            _config = configuration;
+            _configuration = configuration;
+            string grpcServerAddress = configuration["Microservices:userService"];
 
-            userServiceAddress = _config["Microservices:userService"] ?? "";
-
-            channel = GrpcChannel.ForAddress(userServiceAddress);
-
-            userClient = new User.UserClient(channel);
+            var channel = GrpcChannel.ForAddress(grpcServerAddress);
+            _client = new User.UserClient(channel);
         }
 
-        public async Task<UserResponseSingle> GetUserById(int id)
+        // Test connectivity
+        public async Task<string> TestServiceAsync()
         {
-            try
-            {
-                UserRequestSingle request = new UserRequestSingle() { Id = id };
-                UserResponseSingle response = await userClient.GetUserByIdAsyncAsync(request);
-
-                return await Task.FromResult(response);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("-> Failed to fetch user");
-                return null;
-            }
+            var response = await _client.TestServiceAsync(new Empty());
+            return response.ServiceStatus;
         }
 
-        public async Task<UserResponseMultiple> GetAllUsers()
+        // Get user by ID
+        public async Task<CreateUserRequest> GetUserByIdAsync(int userId)
         {
-            try
-            {
-                UserResponseMultiple response = await userClient.GetAllUsersAsync(new Empty());
-
-                return response;
-            }
-            catch (Exception e)
-            {
-                return null;
-            }
+            var request = new UserRequestSingle { UserId = userId };
+            return await _client.GetUserByIdAsyncAsync(request);
         }
 
-        public async Task<UserResponseMultiple> GetAllUsersStream()
+        // Get all users (non-streaming)
+        public async Task<List<CreateUserRequest>> GetAllUsersAsync()
         {
-            UserResponseMultiple response = new UserResponseMultiple();
-            try
-            {
-                using (var call = userClient.GetAllUsersStream(new Empty()))
-                {
-                    while (await call.ResponseStream.MoveNext())
-                    {
-                        response.List.Add(call.ResponseStream.Current);
-                    }
-                }
-
-                return response;
-            }
-            catch (Exception e)
-            {
-                return null;
-            }
+            var response = await _client.GetAllUsersAsync(new Empty());
+            return new List<CreateUserRequest>(response.Users);
         }
 
-        public async Task<UserLoginResponse> LoginUser(string username, string password)
+        // Get all users (streaming)
+        public async Task<List<CreateUserRequest>> GetAllUsersStreamAsync()
         {
-            UserLoginResponse response = new UserLoginResponse() { Status = -1, ErrorMessage = "Failed to authenticate user" };
+            var result = new List<CreateUserRequest>();
+            using var call = _client.GetAllUsersStream(new Empty());
 
-            try
+            while (await call.ResponseStream.MoveNext())
             {
-                UserLoginRequest request = new UserLoginRequest() { Password = password, Username = username };
-
-                response = await userClient.LoginUserAsync(request);
-
-                return await Task.FromResult(response);
+                result.Add(call.ResponseStream.Current);
             }
-            catch(Exception e)
+
+            return result;
+        }
+
+        // Create user
+        public async Task<UserCrudResponse> CreateUserAsync(CreateUserRequest user)
+        {
+            return await _client.CreateUserAsync(user);
+        }
+
+        // Update user
+        public async Task<UserCrudResponse> UpdateUserAsync(CreateUserRequest user)
+        {
+            return await _client.UpdateUserAsync(user);
+        }
+
+        // Delete user
+        public async Task<UserCrudResponse> DeleteUserAsync(int userId)
+        {
+            var request = new UserRequestSingle { UserId = userId };
+            return await _client.DeleteUserAsync(request);
+        }
+
+        // Login
+        public async Task<UserLoginResponse> LoginUserAsync(string username, string password)
+        {
+            var request = new UserLoginRequest
             {
-                return await Task.FromResult(response);
-            }
+                Username = username,
+                Password = password
+            };
+            return await _client.LoginUserAsync(request);
+        }
+
+        // Logout
+        public async Task<UserLoginResponse> LogoutUserAsync(int userId)
+        {
+            var request = new UserRequestSingle { UserId = userId };
+            return await _client.LogoutUserAsync(request);
         }
     }
 }

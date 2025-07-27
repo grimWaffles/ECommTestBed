@@ -20,8 +20,9 @@ namespace API_Gateway.Services
     {
         private readonly Seller.SellerClient _client;
 
-        public SellerService(string grpcServerAddress)
+        public SellerService()
         {
+            string grpcServerAddress = "";
             var channel = GrpcChannel.ForAddress(grpcServerAddress);
             _client = new Seller.SellerClient(channel);
         }

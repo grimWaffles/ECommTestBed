@@ -67,9 +67,10 @@ namespace UserServiceGrpc.Services
 
             //Add the necessary claims to the token
             var claims = new[]{
-                new Claim(JwtRegisteredClaimNames.Sub, Convert.ToString(user.Id)),
-                new Claim(JwtRegisteredClaimNames.Sub, Convert.ToString(user.RoleId)),
-                new Claim(JwtRegisteredClaimNames.Sub, Convert.ToString(user.Username)),
+                new Claim("UserId", Convert.ToString(user.Id)),
+                new Claim("RoleId", Convert.ToString(user.RoleId)),
+                new Claim("Username", Convert.ToString(user.Username)),
+                new Claim(ClaimTypes.Role,user.Role.Name.ToString()),
                 new Claim(JwtRegisteredClaimNames.Jti, guID)
             };
 
@@ -81,8 +82,8 @@ namespace UserServiceGrpc.Services
 
             //Issue the token
             var token = new JwtSecurityToken(
-                issuer: "",
-                audience: "",
+                issuer: _configuration["Jwt:validIssuer"],
+                audience: _configuration["Jwt:validAudience"],
                 claims: claims,
                 expires: DateTime.Now.AddHours(24),
                 signingCredentials: creds
