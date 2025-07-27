@@ -58,7 +58,10 @@ namespace UserServiceGrpc.Repository
         {
             try
             {
-                UserModel u = await _db.Users.AsNoTracking().Include(u => u.Role).Where(u => u.Id == id).FirstAsync();
+                UserModel u = await _db.Users.AsNoTracking()
+                    .Include(u => u.Role)
+                    .Where(u => u.Id == id)
+                    .FirstAsync();
 
                 return u;
             }
@@ -72,7 +75,7 @@ namespace UserServiceGrpc.Repository
         {
             try
             {
-                List<UserModel> list = await _db.Users.AsNoTracking().Include(u => u.Role).ToListAsync();
+                List<UserModel> list = await _db.Users.AsNoTracking().Include(u => u.Role).Take(5).ToListAsync();
 
                 return list;
             }
@@ -102,9 +105,10 @@ namespace UserServiceGrpc.Repository
         {
             try
             {
-                UserModel user = await _db.Users.AsNoTracking().Where(u => u.Username == username).Select(u=> new UserModel
+                UserModel user = await _db.Users.AsNoTracking().Include(u=>u.Role).Where(u => u.Username == username)
+                    .Select(u=> new UserModel
                 {
-                    Id = u.Id, Username = u.Username, Password = u.Password
+                    Id = u.Id, Username = u.Username, Password = u.Password, RoleId = u.RoleId, Role = u.Role
                 }).
                 FirstAsync();
 

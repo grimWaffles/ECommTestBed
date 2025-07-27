@@ -28,7 +28,6 @@ message TestResponse{
 message UserRequestSingle{
 	int32 id = 1;
 	int32 userId = 2;
-	string accessToken = 3;
 }
 
 message CreateUserRequest{
@@ -64,4 +63,5 @@ message UserCrudResponse{
 
 message UserResponseMultiple{
 	repeated CreateUserRequest users = 1;
+
 }

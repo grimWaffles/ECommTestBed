@@ -31,9 +31,9 @@ namespace UserServiceGrpc
                         ValidateAudience = true,
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
-                        ValidIssuer = "yourdomain.com",
-                        ValidAudience = "yourdomain.com",
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("your_super_secret_key"))
+                        ValidIssuer = builder.Configuration["Jwt:validIssuer"],
+                        ValidAudience = builder.Configuration["Jwt:validAudience"],
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:signingKey"]))
                     };
                 });
             builder.Services.AddAuthentication();
@@ -44,7 +44,7 @@ namespace UserServiceGrpc
 
             var app = builder.Build();
 
-            //Add Authe and Autho
+            //Add Authentication and Authorization
             app.UseAuthentication();
             app.UseAuthorization();
 

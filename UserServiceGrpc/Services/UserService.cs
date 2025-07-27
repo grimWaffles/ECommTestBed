@@ -14,10 +14,12 @@ namespace UserServiceGrpc.Services
     public class UserService : User.UserBase
     {
         private readonly IUserRepository _repo;
+        private readonly IConfiguration _configuration;
 
-        public UserService(IUserRepository userRepository)
+        public UserService(IUserRepository userRepository, IConfiguration configuration)
         {
             _repo = userRepository;
+            _configuration = configuration;
         }
 
         //Test Functions
@@ -28,6 +30,7 @@ namespace UserServiceGrpc.Services
 
             return await Task.FromResult(response);
         }
+
         //Private functions
         private UserModel ConvertRequestToModel(CreateUserRequest r)
         {
@@ -55,6 +58,45 @@ namespace UserServiceGrpc.Services
                 RoleId = r.RoleId,
                 IsDeleted = Convert.ToInt32(r.IsDeleted)
             };
+        }
+
+        private string GenerateJwtToken(UserModel user)
+        {
+            //Generate a GUID for the token and save it for later
+            string guID = Guid.NewGuid().ToString();
+
+            //Add the necessary claims to the token
+            var claims = new[]{
+                new Claim(JwtRegisteredClaimNames.Sub, Convert.ToString(user.Id)),
+                new Claim(JwtRegisteredClaimNames.Sub, Convert.ToString(user.RoleId)),
+                new Claim(JwtRegisteredClaimNames.Sub, Convert.ToString(user.Username)),
+                new Claim(JwtRegisteredClaimNames.Jti, guID)
+            };
+
+            //Generate Key
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:signingKey"]));
+
+            //Generate the credentials
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            //Issue the token
+            var token = new JwtSecurityToken(
+                issuer: "",
+                audience: "",
+                claims: claims,
+                expires: DateTime.Now.AddHours(24),
+                signingCredentials: creds
+            );
+
+            try
+            {
+                string newToken = new JwtSecurityTokenHandler().WriteToken(token);
+                return new JwtSecurityTokenHandler().WriteToken(token);
+            }
+            catch (Exception e)
+            {
+                return "";
+            }
         }
 
         //CRUD Operations
@@ -161,7 +203,7 @@ namespace UserServiceGrpc.Services
 
             UserResponseMultiple usersResponse = new UserResponseMultiple();
 
-            usersResponse.Users.AddRange(users.Select(r => ConvertModelToRequest(r)).ToList());
+            usersResponse.Users.AddRange(users.Select(r=> ConvertModelToRequest(r)).ToList());
 
             return usersResponse;
         }
@@ -229,35 +271,6 @@ namespace UserServiceGrpc.Services
 
             return response;
         }
-        private string GenerateJwtToken(UserModel user)
-        {
-            //Generate a GUID for the token and save it for later
-            string guID = Guid.NewGuid().ToString();
-
-            //Add the necessary claims to the token
-            var claims = new[]{
-                new Claim(JwtRegisteredClaimNames.Sub, Convert.ToString(user.Id)),
-                new Claim(JwtRegisteredClaimNames.Sub, Convert.ToString(user.RoleId)),
-                new Claim(JwtRegisteredClaimNames.Sub, Convert.ToString(user.Username)),
-                new Claim(JwtRegisteredClaimNames.Jti, guID)
-            };
-
-            //Generate Key
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("your_super_secret_key"));
-
-            //Generate the credentials
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            //Issue the token
-            var token = new JwtSecurityToken(
-                issuer: "",
-                audience: "",
-                claims: claims,
-                expires: DateTime.Now.AddHours(24),
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
-        }
+        
     }
 }
