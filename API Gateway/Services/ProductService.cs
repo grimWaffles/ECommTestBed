@@ -7,55 +7,51 @@ using ProductServiceGrpc;
 
 namespace API_Gateway.Services
 {
-    public interface IProductService
+    public interface IProductGrpcClient
     {
-        Task<ProductResponse> CreateProductAsync(ProductCreateRequest request);
-        Task<ProductResponse> GetProductByIdAsync(int productId);
-        Task<List<ProductResponse>> GetAllProductsAsync();
-        Task<ProductResponse> UpdateProductAsync(ProductUpdateRequest request);
-        Task DeleteProductAsync(int productId, int modifiedBy);
+        Task<ProductResponse> CreateProductAsync(int userId, ProductDto dto);
+        Task<ProductDto> GetProductByIdAsync(int id);
+        Task<List<ProductDto>> GetAllProductsAsync();
+        Task<ProductResponse> UpdateProductAsync(int userId, ProductDto dto);
+        Task<ProductResponse> DeleteProductAsync(int id, int modifiedBy);
     }
-    public class ProductService : IProductService
+    public class ProductGrpcClient : IProductGrpcClient
     {
-        private readonly Product.ProductClient _client;
+        private readonly ProductService.ProductServiceClient _client;
 
-        public ProductService()
+        public ProductGrpcClient(ProductService.ProductServiceClient client)
         {
-            string grpcServerAddress = "";
-            var channel = GrpcChannel.ForAddress(grpcServerAddress);
-            _client = new Product.ProductClient(channel);
+            _client = client;
         }
 
-        public async Task<ProductResponse> CreateProductAsync(ProductCreateRequest request)
+        public async Task<ProductResponse> CreateProductAsync(int userId, ProductDto dto)
         {
+            var request = new ProductRequest { UserId = userId, Dto = dto };
             return await _client.CreateProductAsync(request);
         }
 
-        public async Task<ProductResponse> GetProductByIdAsync(int productId)
+        public async Task<ProductDto> GetProductByIdAsync(int id)
         {
-            var request = new ProductRequest { Id = productId };
+            var request = new ProductIdRequest { Id = id };
             return await _client.GetProductByIdAsync(request);
         }
 
-        public async Task<List<ProductResponse>> GetAllProductsAsync()
+        public async Task<List<ProductDto>> GetAllProductsAsync()
         {
             var response = await _client.GetAllProductsAsync(new Empty());
-            return new List<ProductResponse>(response.Products);
+            return response.Dtos.ToList();
         }
 
-        public async Task<ProductResponse> UpdateProductAsync(ProductUpdateRequest request)
+        public async Task<ProductResponse> UpdateProductAsync(int userId, ProductDto dto)
         {
+            var request = new ProductRequest { UserId = userId, Dto = dto };
             return await _client.UpdateProductAsync(request);
         }
 
-        public async Task DeleteProductAsync(int productId, int modifiedBy)
+        public async Task<ProductResponse> DeleteProductAsync(int id, int modifiedBy)
         {
-            var request = new ProductDeleteRequest
-            {
-                Id = productId,
-                ModifiedBy = modifiedBy
-            };
-            await _client.DeleteProductAsync(request);
+            var request = new ProductDeleteRequest { Id = id, ModifiedBy = modifiedBy };
+            return await _client.DeleteProductAsync(request);
         }
     }
 }

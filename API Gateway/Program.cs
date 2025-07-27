@@ -2,6 +2,7 @@
 using API_Gateway.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using SellerServiceGrpc;
 using System.Text;
 
 namespace API_Gateway
@@ -53,9 +54,9 @@ namespace API_Gateway
 
             //Add Dependency Injection
             builder.Services.AddScoped<IUserServiceClient, UserServiceClient>();
-            builder.Services.AddScoped<IProductCategoryService,ProductCategoryService>();
-            builder.Services.AddScoped<IProductService, ProductService>();
-            builder.Services.AddScoped<ISellerService, SellerService>();
+            builder.Services.AddScoped<IProductCategoryGrpcClient,ProductCategoryGrpcClient>();
+            builder.Services.AddScoped<IProductGrpcClient, ProductGrpcClient>();
+            builder.Services.AddScoped<ISellerGrpcClient, SellerGrpcClient>();
 
             var app = builder.Build();
 

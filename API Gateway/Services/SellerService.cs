@@ -1,62 +1,50 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Grpc.Net.Client;
+﻿using Grpc.Net.Client;
+using SellerServiceGrpc;
 using Google.Protobuf.WellKnownTypes;
-using ProductServiceGrpc;
 
-namespace API_Gateway.Services
+public interface ISellerGrpcClient
 {
-    public interface ISellerService
+    Task<SellerResponse> CreateSellerAsync(int userId, SellerDto dto);
+    Task<SellerDto> GetSellerByIdAsync(int id);
+    Task<List<SellerDto>> GetAllSellersAsync();
+    Task<SellerResponse> UpdateSellerAsync(int userId, SellerDto dto);
+    Task<SellerResponse> DeleteSellerAsync(int id, int userId);
+}
+
+public class SellerGrpcClient : ISellerGrpcClient
+{
+    private readonly Seller.SellerClient _client;
+
+    public SellerGrpcClient(Seller.SellerClient client)
     {
-        Task<SellerResponse> CreateSellerAsync(SellerCreateRequest request);
-        Task<SellerResponse> GetSellerByIdAsync(int sellerId);
-        Task<List<SellerResponse>> GetAllSellersAsync();
-        Task<SellerResponse> UpdateSellerAsync(SellerUpdateRequest request);
-        Task DeleteSellerAsync(int sellerId, int modifiedBy);
+        _client = client;
     }
 
-    public class SellerService : ISellerService
+    public async Task<SellerResponse> CreateSellerAsync(int userId, SellerDto dto)
     {
-        private readonly Seller.SellerClient _client;
+        var request = new SellerRequest { UserId = userId, Dto = dto };
+        return await _client.CreateSellerAsync(request);
+    }
 
-        public SellerService()
-        {
-            string grpcServerAddress = "";
-            var channel = GrpcChannel.ForAddress(grpcServerAddress);
-            _client = new Seller.SellerClient(channel);
-        }
+    public async Task<SellerDto> GetSellerByIdAsync(int id)
+    {
+        return await _client.GetSellerByIdAsync(new SellerSingleRequest { Id = id });
+    }
 
-        public async Task<SellerResponse> CreateSellerAsync(SellerCreateRequest request)
-        {
-            return await _client.CreateSellerAsync(request);
-        }
+    public async Task<List<SellerDto>> GetAllSellersAsync()
+    {
+        var response = await _client.GetAllSellersAsync(new Empty());
+        return response.Sellers.ToList();
+    }
 
-        public async Task<SellerResponse> GetSellerByIdAsync(int sellerId)
-        {
-            var request = new SellerRequest { Id = sellerId };
-            return await _client.GetSellerByIdAsync(request);
-        }
+    public async Task<SellerResponse> UpdateSellerAsync(int userId, SellerDto dto)
+    {
+        var request = new SellerRequest { UserId = userId, Dto = dto };
+        return await _client.UpdateSellerAsync(request);
+    }
 
-        public async Task<List<SellerResponse>> GetAllSellersAsync()
-        {
-            var response = await _client.GetAllSellersAsync(new Empty());
-            return new List<SellerResponse>(response.Sellers);
-        }
-
-        public async Task<SellerResponse> UpdateSellerAsync(SellerUpdateRequest request)
-        {
-            return await _client.UpdateSellerAsync(request);
-        }
-
-        public async Task DeleteSellerAsync(int sellerId, int modifiedBy)
-        {
-            var request = new SellerDeleteRequest
-            {
-                Id = sellerId,
-                ModifiedBy = modifiedBy
-            };
-            await _client.DeleteSellerAsync(request);
-        }
+    public async Task<SellerResponse> DeleteSellerAsync(int id, int userId)
+    {
+        return await _client.DeleteSellerAsync(new SellerDeleteRequest { Id = id, UserId = userId });
     }
 }

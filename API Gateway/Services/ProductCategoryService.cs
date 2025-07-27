@@ -4,55 +4,64 @@ using ProductServiceGrpc;
 
 namespace API_Gateway.Services
 {
-    public interface IProductCategoryService
+    public interface IProductCategoryGrpcClient
     {
-        Task<ProductCategoryResponse> CreateCategoryAsync(ProductCategoryCreateRequest request);
-        Task<ProductCategoryResponse> GetCategoryByIdAsync(int categoryId);
-        Task<List<ProductCategoryResponse>> GetAllCategoriesAsync();
-        Task<ProductCategoryResponse> UpdateCategoryAsync(ProductCategoryUpdateRequest request);
-        Task DeleteCategoryAsync(int categoryId, int modifiedBy);
+        Task<ProductCategoryCreateResponse> CreateCategoryAsync(int userId, ProductCategoryDto dto);
+        Task<ProductCategoryDto> GetCategoryByIdAsync(int id);
+        Task<List<ProductCategoryDto>> GetAllCategoriesAsync();
+        Task<ProductCategoryCreateResponse> UpdateCategoryAsync(int userId, ProductCategoryDto dto);
+        Task<ProductCategoryCreateResponse> DeleteCategoryAsync(int id, int userId);
     }
-    public class ProductCategoryService : IProductCategoryService
+
+    public class ProductCategoryGrpcClient : IProductCategoryGrpcClient
     {
         private readonly ProductCategory.ProductCategoryClient _client;
 
-        public ProductCategoryService()
+        public ProductCategoryGrpcClient(ProductCategory.ProductCategoryClient client)
         {
-            string grpcServerAddress = "";
-            var channel = GrpcChannel.ForAddress(grpcServerAddress);
-            _client = new ProductCategory.ProductCategoryClient(channel);
+            _client = client;
         }
 
-        public async Task<ProductCategoryResponse> CreateCategoryAsync(ProductCategoryCreateRequest request)
+        public async Task<ProductCategoryCreateResponse> CreateCategoryAsync(int userId, ProductCategoryDto dto)
         {
+            var request = new ProductCategoryCreateRequest
+            {
+                UserId = userId,
+                Dto = dto
+            };
             return await _client.CreateCategoryAsync(request);
         }
 
-        public async Task<ProductCategoryResponse> GetCategoryByIdAsync(int categoryId)
+        public async Task<ProductCategoryDto> GetCategoryByIdAsync(int id)
         {
-            var request = new ProductCategoryRequest { Id = categoryId };
+            var request = new ProductCategorySingleRequest { Id = id };
             return await _client.GetCategoryByIdAsync(request);
         }
 
-        public async Task<List<ProductCategoryResponse>> GetAllCategoriesAsync()
+        public async Task<List<ProductCategoryDto>> GetAllCategoriesAsync()
         {
             var response = await _client.GetAllCategoriesAsync(new Empty());
-            return new List<ProductCategoryResponse>(response.Categories);
+            return response.Dtos.ToList();
         }
 
-        public async Task<ProductCategoryResponse> UpdateCategoryAsync(ProductCategoryUpdateRequest request)
+        public async Task<ProductCategoryCreateResponse> UpdateCategoryAsync(int userId, ProductCategoryDto dto)
         {
+            var request = new ProductCategoryCreateRequest
+            {
+                UserId = userId,
+                Dto = dto
+            };
             return await _client.UpdateCategoryAsync(request);
         }
 
-        public async Task DeleteCategoryAsync(int categoryId, int modifiedBy)
+        public async Task<ProductCategoryCreateResponse> DeleteCategoryAsync(int id, int userId)
         {
             var request = new ProductCategoryDeleteRequest
             {
-                Id = categoryId,
-                ModifiedBy = modifiedBy
+                Id = id,
+                Userid = userId
             };
-            await _client.DeleteCategoryAsync(request);
+            return await _client.DeleteCategoryAsync(request);
         }
     }
 }
