@@ -26,7 +26,7 @@ namespace OrderServiceGrpc.Repository
         public CustomerTransactionRepository(IConfiguration configuration)
         {
             _config = configuration;
-            _connectionString = _config.GetSection("ConnectionStrings:DefaultConnection").Get<string>() ?? "";
+            _connectionString = _config.GetSection("ConnectionStrings:MySqlServer").Get<string>() ?? "";
         }
         public async Task<bool> AddTransaction(TransactionObject request, int userId)
         {
