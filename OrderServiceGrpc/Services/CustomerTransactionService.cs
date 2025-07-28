@@ -7,114 +7,107 @@ using OrderServiceGrpc.Repository;
 
 namespace OrderServiceGrpc.Services
 {
-    public class CustomerTransactionService : CustomerTransactionGrpcService.CustomerTransactionGrpcServiceBase
+    public class CustomerTransactionGrpcService : CustomerTransactionService.CustomerTransactionServiceBase
     {
-        private readonly ICustomerTransactionRepository _trxRepo;
+        private readonly ICustomerTransactionRepository _repo;
 
-        public CustomerTransactionService(IConfiguration configuration, ICustomerTransactionRepository customerTransactionRepository)
+        public CustomerTransactionGrpcService(ICustomerTransactionRepository repo)
         {
-            _trxRepo = customerTransactionRepository;
+            _repo = repo;
         }
 
-        public override async Task<TransactionResponse> GetAllTransactions(TransactionRequest request, ServerCallContext context)
+        public override async Task<TransactionResponseSingle> GetTransactionById(TransactionRequestSingle request, ServerCallContext context)
         {
-            List<CustomerTransactionModel> list = await _trxRepo.GetAllTransactions(request);
-            List<TransactionObject> result = new List<TransactionObject>();
-
-            if (list.IsNullOrEmpty())
+            var model = await _repo.GetTransactionById(request.Id);
+            if (model == null)
             {
-                return new TransactionResponse()
+                return new TransactionResponseSingle
                 {
-                    Status = false,
-                    ErrorMessage = "No data found",
-                    ListOfTransactions = { new List<TransactionObject>() }
+                    Status = 1,
+                    ErrorMessage = "Transaction not found"
                 };
             }
 
-            List<TransactionObject> r = (List<TransactionObject>)list.Select(MapToResponse);
-
-            return new TransactionResponse()
+            return new TransactionResponseSingle
             {
-                Status = true,
-                ErrorMessage = "",
-                ListOfTransactions = { result }
+                Status = 0,
+                Dto = MapToDto(model)
             };
         }
 
-        public override async Task<TransactionResponse> GetTransactionById(TransactionRequest request, ServerCallContext context)
+        public override async Task<TransactionResponseMultiple> GetAllTransactions(TransactionRequestMultiple request, ServerCallContext context)
         {
-            CustomerTransactionModel model = await _trxRepo.GetTransactionById(request);
-            
-            List<TransactionObject> result = new List<TransactionObject>();
+            var models = await _repo.GetAllTransactionsWithPagination(request);
 
-            if (model==null)
+            var response = new TransactionResponseMultiple
             {
-                return new TransactionResponse()
-                {
-                    Status = false,
-                    ErrorMessage = "No data found",
-                    ListOfTransactions = { new List<TransactionObject>() }
-                };
+                Status = models != null,
+                ErrorMessage = models == null ? "Error fetching transactions" : string.Empty
+            };
+
+            if (models != null)
+            {
+                response.Transactions.AddRange(models.Select(MapToDto));
             }
 
-            List<TransactionObject> list = new List<TransactionObject>() { MapToResponse(model)};
+            return response;
+        }
 
-            return new TransactionResponse()
+        public override async Task<TransactionCrudResponse> AddTransaction(TransactionDto request, ServerCallContext context)
+        {
+            var result = await _repo.AddTransaction(request, (int)request.CreatedBy);
+
+            return new TransactionCrudResponse
             {
-                Status = true,
-                ErrorMessage = "",
-                ListOfTransactions = { result }
+                Status = result ? 0 : 1,
+                ErrorMessage = result ? "" : "Failed to add transaction"
             };
         }
 
-        public override async Task<TransactionResponse> AddTransaction(TransactionObject request, ServerCallContext context)
+        public override async Task<TransactionCrudResponse> UpdateTransaction(TransactionDto request, ServerCallContext context)
         {
-            int userId = 1;
-            bool result = await _trxRepo.AddTransaction(request,userId);
+            var result = await _repo.UpdateTransaction(request, (int)request.ModifiedBy);
 
-            return new TransactionResponse()
+            return new TransactionCrudResponse
             {
-                Status = result,
-                ErrorMessage = result ? "Saved successfully" : "Failed to save record"
+                Status = result ? 0 : 1,
+                ErrorMessage = result ? "" : "Failed to update transaction"
             };
         }
 
-        public override async Task<TransactionResponse> UpdateTransaction(TransactionObject request, ServerCallContext context)
+        public override async Task<TransactionCrudResponse> DeleteTransaction(TransactionRequestSingle request, ServerCallContext context)
         {
-            int userId = 1;
-            bool result = await _trxRepo.UpdateTransaction(request, userId);
-
-            return new TransactionResponse()
+            // We’ll create a DTO from just the ID
+            var dto = new TransactionDto
             {
-                Status = result,
-                ErrorMessage = result ? "Updated successfully" : "Failed to update record"
+                Id = request.Id
+            };
+
+            var result = await _repo.DeleteTransaction(dto, request.UserId);
+
+            return new TransactionCrudResponse
+            {
+                Status = result ? 0 : 1,
+                ErrorMessage = result ? "" : "Failed to delete transaction"
             };
         }
 
-        public override async Task<TransactionResponse> DeleteTransaction(TransactionObject request, ServerCallContext context)
+        // ---------------------------
+        // 🔁 Mapping Helpers
+        // ---------------------------
+        private TransactionDto MapToDto(CustomerTransactionModel model)
         {
-            int userId = 1;
-            bool result = await _trxRepo.DeleteTransaction(request, userId);
-
-            return new TransactionResponse()
-            {
-                Status = result,
-                ErrorMessage = result ? "Deleted successfully" : "Failed to delete record"
-            };
-        }
-
-        private static TransactionObject MapToResponse(CustomerTransactionModel model)
-        {
-            return new TransactionObject()
+            return new TransactionDto
             {
                 Id = model.Id,
                 UserId = model.UserId,
                 TransactionType = model.TransactionType,
                 Amount = (double)model.Amount,
                 CreatedBy = model.CreatedBy,
-                CreatedDate = Timestamp.FromDateTimeOffset(model.CreatedDate),
-                IsDeleted = model.IsDeleted,
-                TransactionDate = Timestamp.FromDateTimeOffset(model.TransactionDate)
+                CreatedDate = Timestamp.FromDateTime(model.CreatedDate.ToUniversalTime()),
+                ModifiedBy = model.ModifiedBy,
+                TransactionDate = Timestamp.FromDateTime(model.TransactionDate.ToUniversalTime()),
+                IsDeleted = model.IsDeleted
             };
         }
     }
