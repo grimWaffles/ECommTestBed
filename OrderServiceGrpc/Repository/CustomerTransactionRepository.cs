@@ -3,6 +3,7 @@ using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.ObjectPool;
+using OrderServiceGrpc.Helpers.cs;
 using OrderServiceGrpc.Models;
 using OrderServiceGrpc.Protos;
 using System.Collections.Immutable;
@@ -51,16 +52,25 @@ namespace OrderServiceGrpc.Repository
                                 @IsDeleted,
                                 @TransactionDate
                             );";
-            object[] parameters = { new
-            {
-                UserId = request.UserId,
-                TransactionType = request.TransactionType,
-                Amount = request.Amount,
-                CreatedDate = DateTime.Now,
-                CreatedBy = userId,
-                IsDeleted = false,
-                TransactionDate = DateTime.Now
-            }};
+            //object[] parameters = { new
+            //{
+            //    UserId = request.UserId,
+            //    TransactionType = request.TransactionType,
+            //    Amount = request.Amount,
+            //    CreatedDate = DateTime.Now,
+            //    CreatedBy = userId,
+            //    IsDeleted = false,
+            //    TransactionDate = DateTime.Now
+            //}};
+
+            DynamicParameters parameters = new DynamicParameters();
+            parameters.Add("@UserId", request.UserId);
+            parameters.Add("TransactionType", request.TransactionType);
+            parameters.Add("@TransactionDate", DateTimeHelper.ConvertTimestampToDateTime(request.TransactionDate));
+            parameters.Add("@Amount", request.Amount);
+            parameters.Add("@CreatedDate", DateTimeHelper.ConvertTimestampToDateTime(DateTimeHelper.ConvertDateTimeToTimestamp(DateTime.Now)));
+            parameters.Add("@CreatedBy", userId);
+            parameters.Add("@IsDeleted", false);
 
             try
             {
@@ -88,12 +98,12 @@ namespace OrderServiceGrpc.Repository
                             WHERE
                                 Id = @Id;";
 
-            object[] parameters = { new
-            {
-                ModifiedDate = DateTime.Now,
-                ModifiedBy = userId,
-                IsDeleted = false
-            }};
+            DynamicParameters parameters = new DynamicParameters();
+
+            parameters.Add("@ModifiedDate", DateTimeHelper.ConvertTimestampToDateTime(DateTimeHelper.ConvertDateTimeToTimestamp(DateTime.Now)));
+            parameters.Add("@ModifiedBy", userId);
+            parameters.Add("@IsDeleted", false);
+            parameters.Add("@Id", request.Id);
 
             try
             {
@@ -166,8 +176,8 @@ namespace OrderServiceGrpc.Repository
 
                 DynamicParameters parameters = new DynamicParameters();
 
-                parameters.Add("@StartDate", ConvertTimestampToDateTime(request.StartDate));
-                parameters.Add("@EndDate", ConvertTimestampToDateTime(request.EndDate));
+                parameters.Add("@StartDate", DateTimeHelper.ConvertTimestampToDateTime(request.StartDate));
+                parameters.Add("@EndDate", DateTimeHelper.ConvertTimestampToDateTime(request.EndDate));
                 parameters.Add("@PageNumber", Convert.ToInt32(request.PageNumber));
                 parameters.Add("@PageSize", Convert.ToInt32(request.PageLength));
                 parameters.Add("@TransactionType", Convert.ToString(request.TransactionType));
@@ -197,11 +207,11 @@ namespace OrderServiceGrpc.Repository
                         TransactionType = x.TransactionType,
                         Amount = (double)x.Amount,
                         CreatedBy = x.CreatedBy,
-                        CreatedDate = ConvertDateTimeToTimestamp(x.CreatedDate),
+                        CreatedDate = DateTimeHelper.ConvertDateTimeToTimestamp(x.CreatedDate),
                         IsDeleted = x.IsDeleted,
-                        TransactionDate = ConvertDateTimeToTimestamp(x.TransactionDate),
+                        TransactionDate = DateTimeHelper.ConvertDateTimeToTimestamp(x.TransactionDate),
                         ModifiedBy = x.ModifiedBy,
-                        ModifiedDate = ConvertDateTimeToTimestamp(x.ModifiedDate),
+                        ModifiedDate = DateTimeHelper.ConvertDateTimeToTimestamp(x.ModifiedDate),
                     }).ToList());
 
                     return response;
@@ -215,16 +225,6 @@ namespace OrderServiceGrpc.Repository
                     ErrorMessage = "Failed to fetch orders",
                 };
             }
-        }
-
-        private DateTime ConvertTimestampToDateTime(Google.Protobuf.WellKnownTypes.Timestamp timestamp)
-        {
-            return DateTimeOffset.FromUnixTimeSeconds((long)timestamp.Seconds).DateTime;
-        }
-
-        private Timestamp ConvertDateTimeToTimestamp(DateTime dateTime)
-        {
-            return Timestamp.FromDateTimeOffset(new DateTimeOffset(dateTime.ToUniversalTime()));
         }
 
         public async Task<CustomerTransactionModel> GetTransactionById(int id)
@@ -290,17 +290,28 @@ namespace OrderServiceGrpc.Repository
                             WHERE
                                 Id = @Id;";
 
-            object[] parameters = { new
-            {
-                Id=request.Id,
-                UserId = request.UserId,
-                TransactionType = request.TransactionType,
-                Amount = request.Amount,
-                ModifiedDate = DateTime.Now,
-                ModifiedBy = userId,
-                IsDeleted = false,
-                TransactionDate = DateTime.Now
-            }};
+            //object[] parameters = { new
+            //{
+            //    Id=request.Id,
+            //    UserId = request.UserId,
+            //    TransactionType = request.TransactionType,
+            //    Amount = request.Amount,
+            //    ModifiedDate = DateTime.Now,
+            //    ModifiedBy = userId,
+            //    IsDeleted = false,
+            //    TransactionDate = DateTime.Now
+            //}};
+
+            DynamicParameters parameters = new DynamicParameters();
+
+            parameters.Add("@Id", request.Id);
+            parameters.Add("@UserId", request.UserId);
+            parameters.Add("TransactionType", request.TransactionType);
+            parameters.Add("@TransactionDate", DateTimeHelper.ConvertTimestampToDateTime(request.TransactionDate));
+            parameters.Add("@Amount", request.Amount);
+            parameters.Add("@ModifiedDate", DateTimeHelper.ConvertTimestampToDateTime(DateTimeHelper.ConvertDateTimeToTimestamp(DateTime.Now)));
+            parameters.Add("@ModifiedBy", userId);
+            parameters.Add("@IsDeleted", false);
 
             try
             {
