@@ -1,7 +1,7 @@
 ﻿using API_Gateway.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ProductServiceGrpc;
+using ApiGateway.Protos;
 using System.Security.Claims;
 
 [ApiController]

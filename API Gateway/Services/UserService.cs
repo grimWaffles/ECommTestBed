@@ -1,5 +1,5 @@
 ﻿using Grpc.Net.Client;
-using UserServiceGrpc;
+using ApiGateway.Protos;
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Microsoft.AspNetCore.Identity;

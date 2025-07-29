@@ -3,7 +3,7 @@ syntax = "proto3";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";
 
-option csharp_namespace = "SellerServiceGrpc";
+option csharp_namespace = "ApiGateway.Protos";
 
 message SellerDto {
   int32 id = 1;

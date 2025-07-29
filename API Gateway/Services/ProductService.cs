@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Grpc.Net.Client;
 using Google.Protobuf.WellKnownTypes;
-using ProductServiceGrpc;
+using ApiGateway.Protos;
 
 namespace API_Gateway.Services
 {

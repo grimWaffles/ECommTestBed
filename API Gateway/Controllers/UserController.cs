@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
-using UserServiceGrpc;
+using ApiGateway.Protos;
 
 namespace API_Gateway.Controllers
 {

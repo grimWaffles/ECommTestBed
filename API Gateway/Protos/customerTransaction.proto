@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+option csharp_namespace = "ApiGateway.Protos";
+
+message TransactionDto {
+  int64 id = 1;
+  int64 user_id = 2;
+  string transaction_type = 3;
+  double amount = 4;
+  google.protobuf.Timestamp created_date = 5;
+  int64 created_by = 6;
+  bool is_deleted = 7;
+  google.protobuf.Timestamp transaction_date = 8;
+  google.protobuf.Timestamp modified_date = 9;
+  int32 modified_by = 10;
+}
+
+message TransactionRequestSingle{
+	int32 id = 1;
+	int32 userId = 2;
+}
+
+message TransactionResponseSingle{
+	int32 status = 1;
+	TransactionDto dto = 2;
+	string errorMessage = 3;
+}
+
+message TransactionRequestMultiple {
+  int32 page_number = 1;
+  int32 page_length = 2;
+  string transaction_type = 3;
+  google.protobuf.Timestamp start_date = 4;
+  google.protobuf.Timestamp end_date = 5;
+}
+
+message TransactionResponseMultiple {
+  bool status = 1;
+  string error_message = 2;
+  repeated TransactionDto transactions = 3;
+  int32 total_pages = 4;
+  int32 total_rows = 5;
+}
+
+message TransactionCrudResponse{
+	int32 status = 1;
+	string error_message = 2;
+}
+
+
+service CustomerTransactionService {
+  rpc GetTransactionById (TransactionRequestSingle) returns (TransactionResponseSingle);
+  rpc GetAllTransactions (TransactionRequestMultiple) returns (TransactionResponseMultiple);
+  
+  rpc AddTransaction (TransactionDto) returns (TransactionCrudResponse);
+  rpc UpdateTransaction (TransactionDto) returns (TransactionCrudResponse);
+  rpc DeleteTransaction (TransactionRequestSingle) returns (TransactionCrudResponse);
+}
+

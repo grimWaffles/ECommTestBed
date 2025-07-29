@@ -31,6 +31,8 @@
       <GrpcServices>Client</GrpcServices>
     </Protobuf>
     <Protobuf Include="Protos\user.proto" GrpcServices="Client" />
+	  <Protobuf Include="Protos\order.proto" GrpcServices="Client" />
+	  <Protobuf Include="Protos\customerTransaction.proto" GrpcServices="Client" />
   </ItemGroup>
 
 </Project>

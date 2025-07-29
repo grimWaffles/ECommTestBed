@@ -2,7 +2,7 @@
 using API_Gateway.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using SellerServiceGrpc;
+using ApiGateway.Protos;
 using System.Text;
 
 namespace API_Gateway
@@ -57,6 +57,7 @@ namespace API_Gateway
             builder.Services.AddScoped<IProductCategoryGrpcClient,ProductCategoryGrpcClient>();
             builder.Services.AddScoped<IProductGrpcClient, ProductGrpcClient>();
             builder.Services.AddScoped<ISellerGrpcClient, SellerGrpcClient>();
+            builder.Services.AddScoped<IOrderGrpcClient, OrderGrpcClient>();
 
             var app = builder.Build();
 

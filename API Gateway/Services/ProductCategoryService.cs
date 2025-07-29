@@ -1,6 +1,6 @@
 ﻿using Google.Protobuf.WellKnownTypes;
 using Grpc.Net.Client;
-using ProductServiceGrpc;
+using ApiGateway.Protos;
 
 namespace API_Gateway.Services
 {

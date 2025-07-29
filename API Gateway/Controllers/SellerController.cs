@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SellerServiceGrpc;
+using ApiGateway.Protos;
 using System.Security.Claims;
 
 [ApiController]

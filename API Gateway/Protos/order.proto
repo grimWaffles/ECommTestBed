@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+option csharp_namespace = "ApiGateway.Protos";
+
+// ====== OrderItem Model ======
+message OrderItem{
+	int32 id = 1;
+	int32 orderId = 2;
+	int32 productId = 3;
+	int32 quantity = 4;
+	double grossAmount = 5;
+	string status = 6;
+	int32 createdBy = 7;
+	google.protobuf.Timestamp  createdDate = 8;
+	int32 modifiedBy = 9;
+	google.protobuf.Timestamp  modifiedDate = 10;
+	bool isDeleted = 11;
+}
+
+// ====== Order Model ======
+message Order {
+  int32 id = 1;
+  google.protobuf.Timestamp orderDate = 2;
+  int32 orderCounter = 3;
+  int32 userId = 4;
+  string status = 5;
+  double netAmount = 6;
+  int32 createdBy = 7;
+  google.protobuf.Timestamp createdDate = 8;
+  google.protobuf.Timestamp modifiedDate = 9;
+  int32 modifiedBy = 10;
+  bool isDeleted = 11;
+  repeated OrderItem items = 12;
+}
+
+// ====== Request & Response Messages ======
+message OrderIdRequest {
+  int32 id = 1;
+}
+
+message OrderListRequest{
+	int32 pageSize = 1;
+	int32 pageNumber = 2;
+	google.protobuf.Timestamp startDate = 3;
+	google.protobuf.Timestamp endDate = 4;
+	int32 userId = 5;
+}
+
+message UserIdRequest {
+  int32 userId = 1;
+}
+
+message CreateOrderRequest {
+  Order order = 1;
+}
+
+message UpdateOrderRequest {
+  Order order = 1;
+}
+
+message DeleteOrderRequest {
+  int32 id = 1;
+}
+
+message OrderResponse {
+  bool status = 1;
+  string message = 2;
+  Order order = 3;
+}
+
+message OrderListResponse {
+  bool status = 1;
+  string message = 2;
+  int32 totalPages = 3;
+  int32 totalOrders = 4;
+  repeated Order orders = 5;
+}
+
+// ====== Service Definition ======
+service OrderGrpcService {
+  rpc CreateOrder (CreateOrderRequest) returns (OrderResponse);
+  rpc GetOrderById (OrderIdRequest) returns (OrderResponse);
+  rpc GetOrdersByUser (UserIdRequest) returns (OrderListResponse);
+  rpc GetAllOrders (OrderListRequest) returns (OrderListResponse);
+  rpc UpdateOrder (UpdateOrderRequest) returns (OrderResponse);
+  rpc DeleteOrder (DeleteOrderRequest) returns (OrderResponse);
+}

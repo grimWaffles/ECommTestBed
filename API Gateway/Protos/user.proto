@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
-option csharp_namespace = "UserServiceGrpc";
+option csharp_namespace = "ApiGateway.Protos";
 
 service User{
 	//Test Functions

@@ -1,5 +1,5 @@
 ﻿using Grpc.Net.Client;
-using SellerServiceGrpc;
+using ApiGateway.Protos;
 using Google.Protobuf.WellKnownTypes;
 
 public interface ISellerGrpcClient
