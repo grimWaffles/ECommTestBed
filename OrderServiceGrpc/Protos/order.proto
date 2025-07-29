@@ -74,7 +74,8 @@ message OrderListResponse {
   bool status = 1;
   string message = 2;
   int32 totalPages = 3;
-  repeated Order orders = 4;
+  int32 totalOrders = 4;
+  repeated Order orders = 5;
 }
 
 // ====== Service Definition ======

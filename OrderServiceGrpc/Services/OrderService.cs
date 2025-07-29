@@ -52,24 +52,25 @@ namespace OrderServiceGrpc.Services
         }
         public override async Task<OrderListResponse> GetAllOrders(OrderListRequest request, ServerCallContext context)
         {
-            Tuple<int,List<OrderModel>> result = await _repo.GetAllOrdersWithPagination(request);
+            Tuple<int, int, List<OrderModel>> result = await _repo.GetAllOrdersWithPagination(request);
 
-            if(result == null) { return new OrderListResponse() { Message = "Failed to get orders", Status = false }; }
+            if (result == null) { return new OrderListResponse() { Message = "Failed to get orders", Status = false }; }
 
             OrderListResponse response = new OrderListResponse()
             {
                 Status = true,
                 Message = "Success",
-                TotalPages = result.Item1
+                TotalPages = result.Item1,
+                TotalOrders = result.Item2
             };
 
             try
             {
-                List<Order> orders = result.Item2.Select(OrderMapper.ToProto).ToList();
+                List<Order> orders = result.Item3.Select(m=>OrderMapper.ToProto(m)).ToList();
                 response.Orders.AddRange(orders);
                 return response;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return new OrderListResponse() { Message = "Failed to get orders", Status = false };
             }
@@ -91,7 +92,7 @@ namespace OrderServiceGrpc.Services
 
         public override Task<OrderListResponse> GetOrdersByUser(UserIdRequest request, ServerCallContext context)
         {
-            return base.GetOrdersByUser(request,context);
+            return base.GetOrdersByUser(request, context);
         }
 
         public override async Task<OrderResponse> UpdateOrder(UpdateOrderRequest request, ServerCallContext context)

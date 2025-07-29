@@ -3,6 +3,7 @@ using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Data.SqlClient;
+using OrderServiceGrpc.Helpers.cs;
 using OrderServiceGrpc.Models;
 using OrderServiceGrpc.Protos;
 using System.Data.Common;
@@ -22,7 +23,7 @@ namespace OrderServiceGrpc.Repository
         Task<bool> UpdateOrder(OrderModel request, int userId);
         Task<bool> DeleteOrder(int requestId, int userId);
         Task<int> GetOrderCount();
-        Task<Tuple<int, List<OrderModel>>> GetAllOrdersWithPagination(OrderListRequest request);
+        Task<Tuple<int, int, List<OrderModel>>> GetAllOrdersWithPagination(OrderListRequest request);
         #endregion
 
         #region OrderItems
@@ -58,32 +59,31 @@ namespace OrderServiceGrpc.Repository
 
                 try
                 {
-                    var insertOrderParameters = new
-                    {
-                        OrderDate = request.OrderDate,
-                        UserId = request.UserId,
-                        Status = request.Status,
-                        NetAmount = request.NetAmount,
-                        CreatedBy = userId,
-                        CreatedDate = DateTime.Now,
-                        IsDeleted = false
-                    };
 
-                    int insertedOrderId = await conn.ExecuteScalarAsync<int>(insertOrderSql, insertOrderParameters, t);
+                    DynamicParameters iop = new DynamicParameters();
+
+                    iop.Add("@OrderDate", request.OrderDate);
+                    iop.Add("@UserId", request.UserId);
+                    iop.Add("@Status", request.Status);
+                    iop.Add("@NetAmount", request.NetAmount);
+                    iop.Add("@CreatedBy", request.CreatedBy);
+                    iop.Add("@CreatedDate", request.CreatedDate);
+                    iop.Add("IsDeleted", request.IsDeleted);
+
+                    int insertedOrderId = await conn.ExecuteScalarAsync<int>(insertOrderSql, iop, t);
 
                     foreach (var item in request.OrderItems)
                     {
-                        var parameters = new
-                        {
-                            OrderId = insertedOrderId,
-                            ProductId = item.ProductId,
-                            Quantity = item.Quatity,
-                            GrossAmount = item.GrossAmount,
-                            Status = item.Status,
-                            CreatedBy = userId,
-                            CreatedDate = DateTime.Now,
-                            IsDeleted = false
-                        };
+                        DynamicParameters parameters = new DynamicParameters();
+
+                        parameters.Add("@OrderId", insertedOrderId);
+                        parameters.Add("@ProductId", item.ProductId);
+                        parameters.Add("@Quantity", item.Quatity);
+                        parameters.Add("@GrossAmount", item.GrossAmount);
+                        parameters.Add("@Status", item.Status);
+                        parameters.Add("@CreatedBy", userId);
+                        parameters.Add("@CreatedDate", DateTime.Now);
+                        parameters.Add("@IsDeleted", false);
 
                         await conn.ExecuteAsync(insertOrderItemsSql, parameters, t);
                     }
@@ -115,11 +115,10 @@ namespace OrderServiceGrpc.Repository
             await using SqlConnection conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
-            var parameters = new
-            {
-                ModifiedBy = userId,
-                ModifiedDate = DateTime.Now
-            };
+            DynamicParameters parameters = new DynamicParameters();
+            
+            parameters.Add("@ModifiedBy", userId);
+            parameters.Add("@ModifiedDate", DateTime.Now);
 
             await using DbTransaction transaction = await conn.BeginTransactionAsync();
 
@@ -130,109 +129,13 @@ namespace OrderServiceGrpc.Repository
 
                 await transaction.CommitAsync();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 await transaction.RollbackAsync();
                 return false;
             }
 
             return true;
-        }
-
-        public async Task<List<OrderModel>> GetAllOrders(OrderListRequest request)
-        {
-            string sql = @"select * from Orders order by OrderDate desc";
-            try
-            {
-                await using SqlConnection conn = new SqlConnection(_connectionString);
-                await conn.OpenAsync();
-
-                return (List<OrderModel>)await conn.QueryAsync<OrderModel>(sql);
-            }
-            catch(Exception e)
-            {
-                return null;
-            }
-        }
-
-        public async Task<Tuple<int,List<OrderModel>>> GetAllOrdersWithPagination(OrderListRequest request)
-        {
-            const string sql = @"   declare @TotalOrders int, @TotalPages int
-                                    select
-	                                    o.*
-                                    from Orders o
-                                    order by o.OrderDate desc
-                                    offset (@pageSize-1)*@PageNumber rows
-                                    fetch next @PageSize rows only
-
-                                    select @TotalOrders = count(*) from Orders
-                                    select @TotalPages = (@TotalOrders/@PageSize) + 1
-
-                                    select @TotalPages TotalPages";
-            try
-            {
-                await using SqlConnection conn = new SqlConnection(_connectionString);
-                await conn.OpenAsync();
-
-                var parameters = new
-                {
-                    PageNumber = request.PageNumber,
-                    PageSize = request.PageSize
-                };
-
-                GridReader reader = await conn.QueryMultipleAsync(sql, parameters);
-
-                List<OrderModel> orders = reader.Read<OrderModel>().ToList();
-                int totalPages = reader.ReadSingle<int>();
-
-                return Tuple.Create<int, List<OrderModel>>(totalPages,orders);
-            }
-            catch(Exception e)
-            {
-                return null;
-            }
-        }
-
-        public async Task<OrderModel> GetOrderById(OrderIdRequest request)
-        {
-            const string fetchOrderSql = @"select * from Orders where Id = @OrderId;
-                                            select * from OrderItems where OrderId = @OrderId and IsDeleted = 0;";
-            
-            try
-            {
-                await using SqlConnection conn = new SqlConnection(_connectionString);
-                await conn.OpenAsync();
-
-                var parameters = new { OrderId = request.Id };
-
-                GridReader reader = await conn.QueryMultipleAsync(fetchOrderSql, parameters);
-
-                OrderModel model = reader.Read<OrderModel>().First();
-
-                model.OrderItems = reader.Read<OrderItemModel>().ToList();
-
-                return model;
-            }
-            catch(Exception e)
-            {
-                return null;
-            }
-        }
-
-        public async Task<int> GetOrderCount()
-        {
-            string sql = @"select Count(*) from Orders";
-            try
-            {
-                await using SqlConnection conn = new SqlConnection(_connectionString);
-                await conn.OpenAsync();
-
-                return await conn.ExecuteScalarAsync<int>(sql);
-            }
-            catch(Exception e)
-            {
-                return 0;
-            }
         }
 
         public async Task<bool> UpdateOrder(OrderModel request, int userId)
@@ -260,17 +163,15 @@ namespace OrderServiceGrpc.Repository
 
                 try
                 {
-                    var parameters = new
-                    {
-                        OrderDate= request.OrderDate,
-                        UserId=request.UserId,
-                        Status =request.Status,
-                        NetAmount = request.NetAmount,
-                        ModifiedBy = userId,
-                        ModifiedDate = DateTime.UtcNow,
-                        IsDeleted = false,
-                        request.Id
-                    };
+                    var parameters = new DynamicParameters();
+                    parameters.Add("OrderDate", request.OrderDate);
+                    parameters.Add("UserId", request.UserId);
+                    parameters.Add("Status", request.Status);
+                    parameters.Add("NetAmount", request.NetAmount);
+                    parameters.Add("ModifiedBy", userId);
+                    parameters.Add("ModifiedDate", DateTime.UtcNow);
+                    parameters.Add("IsDeleted", false);
+                    parameters.Add("Id", request.Id);
 
                     await conn.ExecuteAsync(updateOrderSql, parameters, transaction);
                     await conn.ExecuteAsync(deleteOrderItemsSql, new { OrderId = request.Id }, transaction);
@@ -279,19 +180,17 @@ namespace OrderServiceGrpc.Repository
                     {
                         item.OrderId = request.Id;
 
-                        var orderItemParams = new
-                        {
-                            OrderId = request.Id,
-                            ProductId = item.ProductId,
-                            Quantity = item.Quatity,
-                            GrossAmount = item.GrossAmount,
-                            Status = item.Status,
-                            CreatedBy = userId,
-                            CreatedDate = DateTime.Now,
-                            IsDeleted = false
-                        };
+                        var orderItemParams = new DynamicParameters();
+                        orderItemParams.Add("OrderId", request.Id);
+                        orderItemParams.Add("ProductId", item.ProductId);
+                        orderItemParams.Add("Quantity", item.Quatity);
+                        orderItemParams.Add("GrossAmount", item.GrossAmount);
+                        orderItemParams.Add("Status", item.Status);
+                        orderItemParams.Add("CreatedBy", userId);
+                        orderItemParams.Add("CreatedDate", DateTime.Now);
+                        orderItemParams.Add("IsDeleted", false);
 
-                        await conn.ExecuteAsync(insertOrderItemsSql,item, transaction);
+                        await conn.ExecuteAsync(insertOrderItemsSql, item, transaction);
                     }
 
                     await transaction.CommitAsync();
@@ -309,22 +208,124 @@ namespace OrderServiceGrpc.Repository
             }
         }
 
+        public async Task<List<OrderModel>> GetAllOrders(OrderListRequest request)
+        {
+            string sql = @"select * from Orders order by OrderDate desc";
+            try
+            {
+                await using SqlConnection conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                return (List<OrderModel>)await conn.QueryAsync<OrderModel>(sql);
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
+        }
+
+        public async Task<Tuple<int, int, List<OrderModel>>> GetAllOrdersWithPagination(OrderListRequest request)
+        {
+            const string sql = @"   declare @TotalOrders int, @TotalPages int
+                                    select
+	                                    o.*
+                                    from Orders o 
+									where o.OrderDate >= Convert(date,@StartDate) and o.OrderDate <= Convert(date,@EndDate)
+                                    order by o.OrderDate desc
+                                    offset (@pageSize-1)*@PageNumber rows
+                                    fetch next @PageSize rows only
+
+                                    select @TotalOrders = count(*) from Orders where OrderDate >=  Convert(date,@StartDate) and OrderDate <= Convert(date,@EndDate)
+                                    select @TotalPages = (@TotalOrders/@PageSize) + 1
+
+                                    select @TotalPages TotalPages
+									select @TotalOrders TotalOrders";
+            try
+            {
+                await using SqlConnection conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                var parameters = new DynamicParameters();
+
+                parameters.Add("PageNumber", request.PageNumber);
+                parameters.Add("PageSize", request.PageSize);
+                parameters.Add("StartDate", DateTimeHelper.ConvertTimestampToDateTime(request.StartDate));
+                parameters.Add("EndDate", DateTimeHelper.ConvertTimestampToDateTime(request.EndDate));
+
+                GridReader reader = await conn.QueryMultipleAsync(sql, parameters);
+
+                List<OrderModel> orders = reader.Read<OrderModel>().ToList();
+                int totalPages = reader.ReadSingle<int>();
+                int totalOrders = reader.ReadSingle<int>();
+
+                return Tuple.Create<int, int, List<OrderModel>>(totalPages,totalOrders, orders);
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
+        }
+
+        public async Task<OrderModel> GetOrderById(OrderIdRequest request)
+        {
+            const string fetchOrderSql = @"select * from Orders where Id = @OrderId;
+                                            select * from OrderItems where OrderId = @OrderId and IsDeleted = 0;";
+
+            try
+            {
+                await using SqlConnection conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                DynamicParameters parameters = new DynamicParameters();
+                parameters.Add("@OrderId", request.Id);
+
+                GridReader reader = await conn.QueryMultipleAsync(fetchOrderSql, parameters);
+
+                OrderModel model = reader.Read<OrderModel>().First();
+
+                model.OrderItems = reader.Read<OrderItemModel>().ToList();
+
+                return model;
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
+        }
+
         public async Task<List<OrderItemModel>> GetOrderItemsForOrder(int orderId)
         {
-            string sql = @"select * from OrderItems where OrderId = @OrderId";
-
+            string sql = @"select * from OrderItems where OrderId = @OrderId and IsDeleted = 0";
+            DynamicParameters dynamicParameters = new DynamicParameters();
+            dynamicParameters.Add("@Id", orderId);
             try
             {
                 using (SqlConnection conn = new SqlConnection(_connectionString))
                 {
                     await conn.OpenAsync();
 
-                    return (List<OrderItemModel>)await conn.QueryAsync<OrderItemModel>(sql, new { OrderId = orderId });
+                    return (List<OrderItemModel>)await conn.QueryAsync<OrderItemModel>(sql, dynamicParameters);
                 }
             }
             catch (Exception e)
             {
                 return null;
+            }
+        }
+
+        public async Task<int> GetOrderCount()
+        {
+            string sql = @"select Count(*) from Orders";
+            try
+            {
+                await using SqlConnection conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                return await conn.ExecuteScalarAsync<int>(sql);
+            }
+            catch (Exception e)
+            {
+                return 0;
             }
         }
     }
