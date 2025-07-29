@@ -37,18 +37,7 @@ namespace OrderServiceGrpc.Services
 
         public override async Task<TransactionResponseMultiple> GetAllTransactions(TransactionRequestMultiple request, ServerCallContext context)
         {
-            var models = await _repo.GetAllTransactionsWithPagination(request);
-
-            var response = new TransactionResponseMultiple
-            {
-                Status = models != null,
-                ErrorMessage = models == null ? "Error fetching transactions" : string.Empty
-            };
-
-            if (models != null)
-            {
-                response.Transactions.AddRange(models.Select(MapToDto));
-            }
+            var response = await _repo.GetAllTransactionsWithPagination(request);
 
             return response;
         }

@@ -1,9 +1,11 @@
 ﻿using Dapper;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.ObjectPool;
 using OrderServiceGrpc.Models;
 using OrderServiceGrpc.Protos;
+using System.Collections.Immutable;
 using static Dapper.SqlMapper;
 
 namespace OrderServiceGrpc.Repository
@@ -16,7 +18,7 @@ namespace OrderServiceGrpc.Repository
         Task<bool> UpdateTransaction(TransactionDto request, int userId);
         Task<bool> DeleteTransaction(TransactionDto request, int userId);
         Task<int> GetTransactionCount();
-        Task<List<CustomerTransactionModel>> GetAllTransactionsWithPagination(TransactionRequestMultiple request);
+        Task<TransactionResponseMultiple> GetAllTransactionsWithPagination(TransactionRequestMultiple request);
     }
 
     public class CustomerTransactionRepository : ICustomerTransactionRepository
@@ -27,7 +29,7 @@ namespace OrderServiceGrpc.Repository
         public CustomerTransactionRepository(IConfiguration configuration)
         {
             _config = configuration;
-            _connectionString = _config.GetSection("ConnectionStrings:MySqlServer").Get<string>() ?? "";
+            _connectionString = _config.GetSection("ConnectionStrings:DefaultConnection").Get<string>() ?? "";
         }
         public async Task<bool> AddTransaction(TransactionDto request, int userId)
         {
@@ -129,7 +131,7 @@ namespace OrderServiceGrpc.Repository
             }
         }
 
-        public async Task<List<CustomerTransactionModel>> GetAllTransactionsWithPagination(TransactionRequestMultiple request)
+        public async Task<TransactionResponseMultiple> GetAllTransactionsWithPagination(TransactionRequestMultiple request)
         {
             try
             {
@@ -145,39 +147,84 @@ namespace OrderServiceGrpc.Repository
 		                            ,[IsDeleted]
 		                            ,[TransactionDate]
 	                            FROM [ECommercePlatform].[dbo].[CustomerTransactions]
-	                            WHERE Convert(date,TransactionDate) between @StartDate and @EndDate
-	                            ORDER BY Id
+	                            WHERE
+									(@TransactionType = '' or TransactionType = @TransactionType) and
+									convert(date,TransactionDate) >= @StartDate and
+									convert(date,TransactionDate) <= @EndDate
+	                            ORDER BY TransactionDate desc
 	                            OFFSET (@PageNumber-1)*(@PageSize) ROWS
 	                            FETCH NEXT @PageSize ROWS ONLY
 
-	                            declare @TRows int = (SELECT COUNT(*) TotalTransactions FROM CustomerTransactions)
-	                            declare @TPages int = @TRows/@PageSize 
+	                            declare @TRows int = (SELECT COUNT(*) TotalTransactions FROM CustomerTransactions where (@TransactionType = '' or TransactionType = @TransactionType) and
+									convert(date,TransactionDate) >= @StartDate and
+									convert(date,TransactionDate) <= @EndDate )
+	                            
+								declare @TPages int = @TRows/@PageSize 
 
 	                            select @TRows TRows
 	                            select @TPages + 1 TPages";
 
-                object[] parameters = {new
-                {
-                    StartDate = request.StartDate, EndDate = request.EndDate, PageNumber = request.PageNumber, PageSize = request.PageLength
-                }
-                };
+                DynamicParameters parameters = new DynamicParameters();
+
+                parameters.Add("@StartDate", ConvertTimestampToDateTime(request.StartDate));
+                parameters.Add("@EndDate", ConvertTimestampToDateTime(request.EndDate));
+                parameters.Add("@PageNumber", Convert.ToInt32(request.PageNumber));
+                parameters.Add("@PageSize", Convert.ToInt32(request.PageLength));
+                parameters.Add("@TransactionType", Convert.ToString(request.TransactionType));
 
                 using (SqlConnection conn = new SqlConnection(_connectionString))
                 {
                     await conn.OpenAsync();
+
                     GridReader resultSet = await conn.QueryMultipleAsync(sql, parameters);
 
                     List<CustomerTransactionModel> list = (List<CustomerTransactionModel>)await resultSet.ReadAsync<CustomerTransactionModel>();
                     int totalRows = await resultSet.ReadSingleAsync<int>();
                     int totalPages = await resultSet.ReadSingleAsync<int>();
 
-                    return list;
+                    TransactionResponseMultiple response = new TransactionResponseMultiple()
+                    {
+                        Status = true,
+                        ErrorMessage = "",
+                        TotalPages = totalPages,
+                        TotalRows = totalRows,
+                    };
+
+                    response.Transactions.AddRange(list.Select(x => new TransactionDto()
+                    {
+                        Id = x.Id,
+                        UserId = x.UserId,
+                        TransactionType = x.TransactionType,
+                        Amount = (double)x.Amount,
+                        CreatedBy = x.CreatedBy,
+                        CreatedDate = ConvertDateTimeToTimestamp(x.CreatedDate),
+                        IsDeleted = x.IsDeleted,
+                        TransactionDate = ConvertDateTimeToTimestamp(x.TransactionDate),
+                        ModifiedBy = x.ModifiedBy,
+                        ModifiedDate = ConvertDateTimeToTimestamp(x.ModifiedDate),
+                    }).ToList());
+
+                    return response;
                 }
             }
             catch (Exception e)
             {
-                return null;
+                return new TransactionResponseMultiple()
+                {
+                    Status = false,
+                    ErrorMessage = "Failed to fetch orders",
+                };
             }
+        }
+
+        private DateTime ConvertTimestampToDateTime(Google.Protobuf.WellKnownTypes.Timestamp timestamp)
+        {
+            return DateTimeOffset.FromUnixTimeSeconds((long)timestamp.Seconds).DateTime;
+        }
+
+        private Timestamp ConvertDateTimeToTimestamp(DateTime dateTime)
+        {
+            return Timestamp.FromDateTimeOffset(new DateTimeOffset(dateTime.ToUniversalTime()));
         }
 
         public async Task<CustomerTransactionModel> GetTransactionById(int id)
@@ -191,7 +238,8 @@ namespace OrderServiceGrpc.Repository
                                     from CustomerTransactions 
                                     where Id = @Id";
 
-                    object[] p = { new { Id = id } };
+                    DynamicParameters p =new DynamicParameters();
+                    p.Add("@Id", id);
 
                     await db.OpenAsync();
 

@@ -33,15 +33,16 @@ message TransactionRequestMultiple {
   int32 page_number = 1;
   int32 page_length = 2;
   string transaction_type = 3;
-  google.protobuf.Timestamp transaction_date = 4;
-  google.protobuf.Timestamp start_date = 5;
-  google.protobuf.Timestamp end_date = 6;
+  google.protobuf.Timestamp start_date = 4;
+  google.protobuf.Timestamp end_date = 5;
 }
 
 message TransactionResponseMultiple {
   bool status = 1;
   string error_message = 2;
   repeated TransactionDto transactions = 3;
+  int32 total_pages = 4;
+  int32 total_rows = 5;
 }
 
 message TransactionCrudResponse{
