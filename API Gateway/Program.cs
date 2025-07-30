@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using ApiGateway.Protos;
 using System.Text;
-
+using StackExchange.Redis;
 namespace API_Gateway
 {
     public class Program
@@ -58,6 +58,8 @@ namespace API_Gateway
             builder.Services.AddScoped<IProductGrpcClient, ProductGrpcClient>();
             builder.Services.AddScoped<ISellerGrpcClient, SellerGrpcClient>();
             builder.Services.AddScoped<IOrderGrpcClient, OrderGrpcClient>();
+
+            builder.Services.AddSingleton<IRedisService, RedisService>();
 
             var app = builder.Build();
 

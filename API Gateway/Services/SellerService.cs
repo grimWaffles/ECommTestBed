@@ -15,9 +15,26 @@ public class SellerGrpcClient : ISellerGrpcClient
 {
     private readonly Seller.SellerClient _client;
 
-    public SellerGrpcClient(Seller.SellerClient client)
+    public SellerGrpcClient(IConfiguration configuration)
     {
-        _client = client;
+        string serviceUrl = configuration["MicroService:productService"];
+            if (string.IsNullOrEmpty(serviceUrl))
+            {
+                throw new ArgumentException("gRPC service URL not configured in appsettings.json");
+            }
+
+            var httpHandler = new HttpClientHandler
+            {
+                // This is optional and should be used only in development for insecure certs
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            };
+
+            var channel = GrpcChannel.ForAddress(serviceUrl, new GrpcChannelOptions
+            {
+                HttpHandler = httpHandler
+            });
+
+            _client = new Seller.SellerClient(channel);
     }
 
     public async Task<SellerResponse> CreateSellerAsync(int userId, SellerDto dto)
