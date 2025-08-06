@@ -7,6 +7,7 @@ namespace API_Gateway.Services
         Task<string> GetValueByKey(string key);
         string SetValueByKey(string keyName, string keyValue);
         bool DoesKeyExist(string key);
+        bool DeleteKey(string key);
     }
     public class RedisService : IRedisService
     {
@@ -49,6 +50,17 @@ namespace API_Gateway.Services
         public bool DoesKeyExist(string key)
         {
             return _redis.KeyExists(key);
+        }
+
+        public bool DeleteKey(string key)
+        {
+            if (_redis.KeyExists(key))
+            {
+                _redis.KeyDelete(key);
+                return true;
+            }
+
+            return false;
         }
     }
 }
