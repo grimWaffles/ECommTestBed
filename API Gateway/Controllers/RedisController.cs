@@ -1,4 +1,6 @@
+using System.Text.Json;
 using System.Threading.Tasks;
+using API_Gateway.Models;
 using API_Gateway.Services;
 using Microsoft.AspNetCore.Mvc;
 using StackExchange.Redis;
@@ -7,7 +9,7 @@ namespace API_Gateway.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class RedisTestController(IRedisService redisService) : ControllerBase
+    public class RedisController(IRedisService redisService) : ControllerBase
     {
         private readonly IRedisService _redis = redisService;
 
@@ -22,7 +24,23 @@ namespace API_Gateway.Controllers
         [Route("add-key")]
         public async Task<IActionResult> AddKeyToRedis()
         {
-            _redis.SetValueByKey("Company", "Datasoft");
+            List<RedisTestModel> list = new List<RedisTestModel>();
+
+            for (int i = 1; i < 100; i++)
+            {
+                RedisTestModel model = new RedisTestModel()
+                {
+                    Id = i,
+                    Username = "Wazi",
+                    IsRegistered = true,
+                    RegistrationDate = DateTime.Now
+                };
+
+                Console.WriteLine($"Adding model with ID:{model.Id}");
+                list.Add(model);
+            }
+
+            _redis.SetValueByKey("user_obj", JsonSerializer.Serialize(list));
             return Ok("Functions complete");
         }
 
@@ -30,10 +48,12 @@ namespace API_Gateway.Controllers
         [Route("get-key")]
         public async Task<IActionResult> GetKey()
         {
-            string key = "Company";
+            string key = "user_obj";
             if (_redis.DoesKeyExist(key))
             {
-                return Ok(await _redis.GetValueByKey(key));
+                var redisList = await _redis.GetValueByKey(key);
+                List<RedisTestModel> list = JsonSerializer.Deserialize<List<RedisTestModel>>(redisList);
+                return Ok(list);
             }
             return Ok("No key exists.");
         }
