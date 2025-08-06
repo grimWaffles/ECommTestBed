@@ -57,5 +57,18 @@ namespace API_Gateway.Controllers
             }
             return Ok("No key exists.");
         }
+
+        [HttpGet]
+        [Route("del-key")]
+        public async Task<IActionResult> DeleteKey()
+        {
+            string key = "user_obj";
+            if (_redis.DoesKeyExist(key))
+            {
+                _redis.DeleteKey(key);
+                return Ok("Data deleted");
+            }
+            return Ok("No key exists.");
+        }
     }
 }
