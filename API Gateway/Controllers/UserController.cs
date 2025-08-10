@@ -26,7 +26,7 @@ namespace API_Gateway.Controllers
             return StatusCode(StatusCodes.Status200OK, new { message = response });
         }
 
-        [HttpGet]
+        [HttpPost]
         [Route("login")]
         public async Task<IActionResult> LoginUser([FromForm] string username, [FromForm] string password)
         {
