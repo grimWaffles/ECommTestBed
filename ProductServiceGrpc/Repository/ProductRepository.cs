@@ -8,7 +8,7 @@ namespace ProductServiceGrpc.Repository
     {
         Task<ProductModel> CreateProductAsync(ProductModel productModel);
         Task<ProductModel> GetProductByIdAsync(int id);
-        Task<List<ProductModel>> GetAllProductsAsync();
+        Task<Tuple<string, List<ProductModel>>> GetAllProductsAsync();
         Task<bool> UpdateProductAsync(ProductModel updatedProduct);
         Task<bool> DeleteProductAsync(int id, int modifiedBy);
     }
@@ -32,7 +32,7 @@ namespace ProductServiceGrpc.Repository
                 await _db.SaveChangesAsync();
                 return productModel;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return null;
             }
@@ -48,26 +48,35 @@ namespace ProductServiceGrpc.Repository
                             .Include(p => p.ProductCategory)
                             .FirstAsync(p => p.Id == id && !p.IsDeleted);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return null;
             }
         }
 
         // READ (Get all)
-        public async Task<List<ProductModel>> GetAllProductsAsync()
+        public async Task<Tuple<string, List<ProductModel>>> GetAllProductsAsync()
         {
+            List<ProductModel> products = new List<ProductModel>();
+            string response = "";
             try
             {
-                return await _db.Products
+                products = await _db.Products
                             .Where(p => !p.IsDeleted)
                             .Include(p => p.Seller)
                             .Include(p => p.ProductCategory)
                             .ToListAsync();
+
+                response = products == null ? "No products found" : $"Fetched {products.Count} rows";
+
+                return Tuple.Create(response, products);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                return null;
+                products = new List<ProductModel>();
+                response = $"Error: {e.Message}";
+
+                return Tuple.Create(response,products);
             }
         }
 
@@ -93,7 +102,7 @@ namespace ProductServiceGrpc.Repository
                 await _db.SaveChangesAsync();
                 return true;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return false;
             }
@@ -115,7 +124,7 @@ namespace ProductServiceGrpc.Repository
                 await _db.SaveChangesAsync();
                 return true;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 return false;
             }

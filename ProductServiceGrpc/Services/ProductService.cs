@@ -1,4 +1,5 @@
 ﻿using EfCoreTutorial.Entity.ECommerceModels;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using ProductServiceGrpc;
 using ProductServiceGrpc.Repository;
@@ -13,6 +14,14 @@ namespace ProductServiceGrpc.Services
         public ProductService(IProductRepository repo)
         {
             _repo = repo;
+        }
+
+        public override Task<ProductServiceTestMessage> TestProductService(Empty request, ServerCallContext context)
+        {
+            return Task.FromResult(new ProductServiceTestMessage()
+            {
+                StatusMessage = "Product service up and running."
+            });
         }
 
         public override async Task<ProductResponse> CreateProduct(ProductRequest request, ServerCallContext context)
@@ -69,12 +78,23 @@ namespace ProductServiceGrpc.Services
             var response = new ProductListResponse();
             try
             {
-                var products = await _repo.GetAllProductsAsync();
-                if (products != null)
-                    response.Dtos.AddRange(products.Select(MapToDto));
+                Tuple<string,List<ProductModel>> products = await _repo.GetAllProductsAsync();
+                if (products.Item2 != null)
+                {
+                    response.Dtos.AddRange(products.Item2.Select(MapToDto));
+                    response.Status = 1;
+                    response.ErrorMessage = $"Found {products.Item2.Count} products.";
+                }
+                else
+                {
+                    response.Status = -1;
+                    response.ErrorMessage = $"{products.Item1}";
+                }
             }
-            catch
+            catch(Exception e)
             {
+                response.Status = -1;
+                response.ErrorMessage = e.Message;
                 // Return empty list on failure
             }
 
