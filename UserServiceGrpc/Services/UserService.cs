@@ -127,9 +127,9 @@ namespace UserServiceGrpc.Services
             }
 
             UserModel requestModel = ConvertRequestToModel(request);
-            requestModel.CreatedBy = request.UserId; requestModel.CreatedDate = DateTime.Now;
+            requestModel.CreatedBy = requestModel.RoleId == 1 ? 1 : request.UserId; requestModel.CreatedDate = DateTime.Now;
 
-            int status = _repo.CreateUser(requestModel);
+            int status = await _repo.CreateUser(requestModel);
 
             response.Status = status;
             response.ErrorMesage = status == 1 ? "User added successfully" : "Failed to add user";
@@ -152,7 +152,7 @@ namespace UserServiceGrpc.Services
             UserModel requestModel = ConvertRequestToModel(request);
             requestModel.ModifiedBy = request.UserId; requestModel.ModifiedDate = DateTime.Now;
 
-            int status = _repo.UpdateUser(requestModel);
+            int status = await _repo.UpdateUser(requestModel);
 
             response.Status = status;
             response.ErrorMesage = status == 1 ? "User updated successfully" : "Failed to update user";
@@ -173,7 +173,7 @@ namespace UserServiceGrpc.Services
             }
             userModel.IsDeleted = true; userModel.ModifiedDate = DateTime.Now; ; userModel.ModifiedBy = request.UserId;
 
-            int status = _repo.UpdateUser(userModel);
+            int status = await _repo.UpdateUser(userModel);
 
             response.Status = status;
             response.ErrorMesage = status == 1 ? "User updated successfully" : "Failed to update user";

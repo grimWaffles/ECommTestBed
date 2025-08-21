@@ -9,9 +9,9 @@ namespace UserServiceGrpc.Repository
     {
         Task<List<UserModel>> GetUsers();
         Task<UserModel> GetUserById(int id);
-        int CreateUser(UserModel user);
-        int UpdateUser(UserModel user);
-        int DeleteUser(UserModel user);
+        Task<int> CreateUser(UserModel user);
+        Task<int> UpdateUser(UserModel user);
+        Task<int> DeleteUser(UserModel user);
         Task<UserModel> GetUserByUsername(string username);
     }
 
@@ -24,12 +24,12 @@ namespace UserServiceGrpc.Repository
             _db = context;
         }
 
-        public int CreateUser(UserModel user)
+        public async Task<int> CreateUser(UserModel user)
         {
             try
             {
                 _db.Users.Add(user);
-                _db.SaveChangesAsync();
+                await _db.SaveChangesAsync();
 
                 return 1;
             }
@@ -39,12 +39,12 @@ namespace UserServiceGrpc.Repository
             }
         }
 
-        public int DeleteUser(UserModel user)
+        public async Task<int> DeleteUser(UserModel user)
         {
             try
             {
                 _db.Users.Update(user);
-                _db.SaveChangesAsync();
+                await _db.SaveChangesAsync();
 
                 return 1;
             }
@@ -85,13 +85,13 @@ namespace UserServiceGrpc.Repository
             }
         }
 
-        public int UpdateUser(UserModel user)
+        public async Task<int> UpdateUser(UserModel user)
         {
             try
             {
                 _db.Users.Add(user);
 
-                _db.SaveChangesAsync();
+                await _db.SaveChangesAsync();
 
                 return 1;
             }
