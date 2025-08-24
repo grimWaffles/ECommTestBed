@@ -60,7 +60,7 @@ namespace UserServiceGrpc.Repository
             {
                 UserModel u = await _db.Users.AsNoTracking()
                     .Include(u => u.Role)
-                    .Where(u => u.Id == id && !u.IsDeleted)
+                    .Where(u => u.Id == id)
                     .FirstAsync();
 
                 return u;
