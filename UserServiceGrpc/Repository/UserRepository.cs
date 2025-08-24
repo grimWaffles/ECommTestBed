@@ -60,7 +60,7 @@ namespace UserServiceGrpc.Repository
             {
                 UserModel u = await _db.Users.AsNoTracking()
                     .Include(u => u.Role)
-                    .Where(u => u.Id == id)
+                    .Where(u => u.Id == id && !u.IsDeleted)
                     .FirstAsync();
 
                 return u;
@@ -89,7 +89,7 @@ namespace UserServiceGrpc.Repository
         {
             try
             {
-                _db.Users.Add(user);
+                _db.Users.Update(user);
 
                 await _db.SaveChangesAsync();
 

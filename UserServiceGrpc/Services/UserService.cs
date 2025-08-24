@@ -139,7 +139,7 @@ namespace UserServiceGrpc.Services
 
         public override async Task<UserCrudResponse> UpdateUser(CreateUserRequest request, ServerCallContext context)
         {
-            UserModel userModel = await _repo.GetUserByUsername(request.Username);
+            UserModel userModel = await _repo.GetUserById(request.Id);
             UserCrudResponse response = new UserCrudResponse();
 
             if (userModel == null)
@@ -150,9 +150,16 @@ namespace UserServiceGrpc.Services
             }
 
             UserModel requestModel = ConvertRequestToModel(request);
-            requestModel.ModifiedBy = request.UserId; requestModel.ModifiedDate = DateTime.Now;
 
-            int status = await _repo.UpdateUser(requestModel);
+            userModel.Username = requestModel.Username;
+            userModel.Password = requestModel.Password;
+            userModel.Email = requestModel.Email;
+            userModel.MobileNo = requestModel.MobileNo;
+            userModel.RoleId = requestModel.RoleId;
+            
+            userModel.ModifiedBy = request.UserId; userModel.ModifiedDate = DateTime.Now;
+
+            int status = await _repo.UpdateUser(userModel);
 
             response.Status = status;
             response.ErrorMesage = status == 1 ? "User updated successfully" : "Failed to update user";
