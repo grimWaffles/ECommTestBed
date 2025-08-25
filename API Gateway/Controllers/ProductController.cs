@@ -28,7 +28,7 @@ public class ProductController : ControllerBase
     [HttpPost("create")]
     public async Task<IActionResult> CreateProduct([FromForm] ProductDto dto)
     {
-        int userId = GetUserId();
+        int userId = Convert.ToInt32(HttpContext.User.FindFirst("userId")?.Value);
         var response = await _grpcClient.CreateProductAsync(userId, dto);
         return response.Status == 1 ? Ok(response.Dto) : BadRequest(response.ErrorMessage);
     }
@@ -50,7 +50,7 @@ public class ProductController : ControllerBase
     [HttpPut("update/{id}")]
     public async Task<IActionResult> UpdateProduct(int id, [FromForm] ProductDto dto)
     {
-        int userId = GetUserId();
+        int userId = Convert.ToInt32(HttpContext.User.FindFirst("userId")?.Value);
         dto.Id = id;
         var response = await _grpcClient.UpdateProductAsync(userId, dto);
         return response.Status == 1 ? Ok(response.Dto) : BadRequest(response.ErrorMessage);
@@ -59,7 +59,7 @@ public class ProductController : ControllerBase
     [HttpDelete("delete/{id}")]
     public async Task<IActionResult> DeleteProduct(int id)
     {
-        int userId = GetUserId();
+        int userId = Convert.ToInt32(HttpContext.User.FindFirst("userId")?.Value);
         var response = await _grpcClient.DeleteProductAsync(id, userId);
         return response.Status == 1 ? Ok() : BadRequest(response.ErrorMessage);
     }

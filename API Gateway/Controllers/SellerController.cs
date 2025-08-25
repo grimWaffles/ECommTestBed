@@ -15,22 +15,13 @@ public class SellersController : ControllerBase
         _grpcClient = grpcClient;
     }
 
-    // Helper to extract userId from JWT claims
-    private int GetUserIdFromClaims()
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier); // or "userId"
-        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
-            throw new UnauthorizedAccessException("Invalid or missing user ID claim");
-        return userId;
-    }
-
     // POST: api/sellers/create
     [HttpPost("create")]
     public async Task<IActionResult> CreateSeller([FromForm] SellerDto dto)
     {
         try
         {
-            int userId = GetUserIdFromClaims();
+            int userId = Convert.ToInt32(HttpContext.User.FindFirst("userId")?.Value);
             var response = await _grpcClient.CreateSellerAsync(userId, dto);
             return response.Status == 1 ? Ok(response.Dto) : BadRequest(response.ErrorMessage);
         }
@@ -62,7 +53,7 @@ public class SellersController : ControllerBase
     {
         try
         {
-            int userId = GetUserIdFromClaims();
+            int userId = Convert.ToInt32(HttpContext.User.FindFirst("userId")?.Value);
             dto.Id = id;
             var response = await _grpcClient.UpdateSellerAsync(userId, dto);
             return response.Status == 1 ? Ok(response.Dto) : BadRequest(response.ErrorMessage);
@@ -79,7 +70,7 @@ public class SellersController : ControllerBase
     {
         try
         {
-            int userId = GetUserIdFromClaims();
+            int userId = Convert.ToInt32(HttpContext.User.FindFirst("userId")?.Value);
             var response = await _grpcClient.DeleteSellerAsync(id, userId);
             return response.Status == 1 ? Ok() : BadRequest(response.ErrorMessage);
         }

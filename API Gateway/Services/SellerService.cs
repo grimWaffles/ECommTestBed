@@ -17,7 +17,7 @@ public class SellerGrpcClient : ISellerGrpcClient
 
     public SellerGrpcClient(IConfiguration configuration)
     {
-        string serviceUrl = configuration["MicroService:productService"];
+        string serviceUrl = configuration["Microservices:productService"];
             if (string.IsNullOrEmpty(serviceUrl))
             {
                 throw new ArgumentException("gRPC service URL not configured in appsettings.json");

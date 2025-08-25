@@ -178,6 +178,7 @@ namespace UserServiceGrpc.Services
                 response.ErrorMesage = "User does not exist";
                 return response;
             }
+
             userModel.IsDeleted = true; userModel.ModifiedDate = DateTime.Now; ; userModel.ModifiedBy = request.UserId;
 
             int status = await _repo.UpdateUser(userModel);

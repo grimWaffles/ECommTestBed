@@ -13,8 +13,6 @@ namespace API_Gateway
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
             //Add CORS
             builder.Services.AddCors(options =>
             {
@@ -28,7 +26,7 @@ namespace API_Gateway
                 });
             });
 
-            //Add JWT Auth
+            //Add JWT Authentication
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options => {
                     options.TokenValidationParameters = new TokenValidationParameters()
@@ -44,7 +42,6 @@ namespace API_Gateway
                 });
             builder.Services.AddAuthentication();
             builder.Services.AddAuthorization();
-
 
             builder.Services.AddControllers();
 

@@ -27,9 +27,11 @@ public class ProductCategoryController : ControllerBase
     [HttpPost("create")]
     public async Task<IActionResult> CreateCategory([FromForm] ProductCategoryDto dto)
     {
-        int userId = GetUserId();
+        int userId = Convert.ToInt32(HttpContext.User.FindFirst("userId")?.Value);
+
         var response = await _grpcClient.CreateCategoryAsync(userId, dto);
-        return response.Status == 1 ? Ok(response.Dto) : BadRequest(response.ErrorMessage);
+        
+        return response.Status == 1 ? Ok(response.Dto) : StatusCode(StatusCodes.Status500InternalServerError, new { message = response.ErrorMessage });
     }
 
     [HttpGet("{id}")]
@@ -49,8 +51,12 @@ public class ProductCategoryController : ControllerBase
     [HttpPut("update/{id}")]
     public async Task<IActionResult> UpdateCategory(int id, [FromForm] ProductCategoryDto dto)
     {
-        int userId = GetUserId();
-        dto.Id = id;
+        int userId = Convert.ToInt32(HttpContext.User.FindFirst("userId")?.Value);
+
+        if (dto.Id != id)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, new {message = "Invalid information provided."});
+        }
         var response = await _grpcClient.UpdateCategoryAsync(userId, dto);
         return response.Status == 1 ? Ok(response.Dto) : BadRequest(response.ErrorMessage);
     }
@@ -58,7 +64,8 @@ public class ProductCategoryController : ControllerBase
     [HttpDelete("delete/{id}")]
     public async Task<IActionResult> DeleteCategory(int id)
     {
-        int userId = GetUserId();
+        int userId = Convert.ToInt32(HttpContext.User.FindFirst("userId")?.Value);
+
         var response = await _grpcClient.DeleteCategoryAsync(id, userId);
         return response.Status == 1 ? Ok() : BadRequest(response.ErrorMessage);
     }

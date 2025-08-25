@@ -13,7 +13,7 @@ namespace API_Gateway.Services
         Task<List<CreateUserRequest>> GetAllUsersStreamAsync();
         Task<UserCrudResponse> CreateUserAsync(CreateUserRequest user);
         Task<UserCrudResponse> UpdateUserAsync(CreateUserRequest user);
-        Task<UserCrudResponse> DeleteUserAsync(int userId);
+        Task<UserCrudResponse> DeleteUserAsync(int id,int userId);
         Task<UserLoginResponse> LoginUserAsync(string username, string password);
         Task<UserLoginResponse> LogoutUserAsync(int userId);
     }
@@ -39,20 +39,6 @@ namespace API_Gateway.Services
             return response.ServiceStatus;
         }
 
-        // Get user by ID
-        public async Task<CreateUserRequest> GetUserByIdAsync(int userId)
-        {
-            var request = new UserRequestSingle { UserId = userId };
-            return await _client.GetUserByIdAsyncAsync(request);
-        }
-
-        // Get all users (non-streaming)
-        public async Task<List<CreateUserRequest>> GetAllUsersAsync()
-        {
-            var response = await _client.GetAllUsersAsync(new Empty());
-            return new List<CreateUserRequest>(response.Users);
-        }
-
         // Get all users (streaming)
         public async Task<List<CreateUserRequest>> GetAllUsersStreamAsync()
         {
@@ -65,6 +51,20 @@ namespace API_Gateway.Services
             }
 
             return result;
+        }
+       
+        // Get all users (non-streaming)
+        public async Task<List<CreateUserRequest>> GetAllUsersAsync()
+        {
+            var response = await _client.GetAllUsersAsync(new Empty());
+            return new List<CreateUserRequest>(response.Users);
+        }
+
+        // Get user by ID
+        public async Task<CreateUserRequest> GetUserByIdAsync(int userId)
+        {
+            var request = new UserRequestSingle { Id = userId };
+            return await _client.GetUserByIdAsyncAsync(request);
         }
 
         // Create user
@@ -80,9 +80,9 @@ namespace API_Gateway.Services
         }
 
         // Delete user
-        public async Task<UserCrudResponse> DeleteUserAsync(int userId)
+        public async Task<UserCrudResponse> DeleteUserAsync(int id, int userId)
         {
-            var request = new UserRequestSingle { UserId = userId };
+            var request = new UserRequestSingle { Id = id, UserId = userId };
             return await _client.DeleteUserAsync(request);
         }
 

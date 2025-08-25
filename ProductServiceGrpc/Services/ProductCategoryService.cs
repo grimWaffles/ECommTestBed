@@ -41,7 +41,21 @@ namespace ProductServiceGrpc.Services
                     CreatedDate = DateTime.UtcNow
                 };
 
-                await _repo.CreateCategoryAsync(newCategory);
+                ProductCategoryModel c = await _repo.CreateCategoryAsync(newCategory);
+
+                if (c == null)
+                {
+                    return new ProductCategoryCreateResponse
+                    {
+                        Status = -1,
+                        ErrorMessage = "Category create failed",
+                        Dto = new ProductCategoryDto
+                        {
+                            Id = newCategory.Id,
+                            CategoryName = newCategory.CategoryName
+                        }
+                    };
+                }
 
                 return new ProductCategoryCreateResponse
                 {
