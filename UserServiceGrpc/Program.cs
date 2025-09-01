@@ -19,8 +19,7 @@ namespace UserServiceGrpc
 
             //Add Database to the server
             builder.Services.AddDbContext<AppDbContext>(options=>
-                //options.UseSqlServer(builder.Configuration.GetConnectionString("HomeServer"))
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DockerConnection"))
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
             );
 
             //Add JWT Auth
