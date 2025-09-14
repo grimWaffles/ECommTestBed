@@ -17,7 +17,7 @@ namespace API_Gateway.Services
 
         public OrderGrpcClient(IConfiguration configuration)
         {
-            string serviceUrl = configuration["MicroService:orderService"];
+            string serviceUrl = configuration["Microservices:orderService"];
             if (string.IsNullOrEmpty(serviceUrl))
             {
                 throw new ArgumentException("gRPC service URL not configured in appsettings.json");

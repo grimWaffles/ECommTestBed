@@ -55,6 +55,7 @@ namespace API_Gateway
             builder.Services.AddScoped<IProductGrpcClient, ProductGrpcClient>();
             builder.Services.AddScoped<ISellerGrpcClient, SellerGrpcClient>();
             builder.Services.AddScoped<IOrderGrpcClient, OrderGrpcClient>();
+            builder.Services.AddScoped<IOrderEventProducer,OrderEventProducer>();
 
             builder.Services.AddSingleton<IRedisService, RedisService>();
 
