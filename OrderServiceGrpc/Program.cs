@@ -8,7 +8,9 @@ builder.Services.AddGrpc();
 
 //Dependency Injection
 builder.Services.AddScoped<ICustomerTransactionRepository, CustomerTransactionRepository>();
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddSingleton<IOrderRepository, OrderRepository>();
+
+builder.Services.AddHostedService<ConsumerBackgroundService>();
 
 var app = builder.Build();
 

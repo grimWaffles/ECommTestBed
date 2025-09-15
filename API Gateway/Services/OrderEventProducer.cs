@@ -39,7 +39,7 @@ namespace API_Gateway.Services
 
                 try
                 {
-                    var result = producer.ProduceAsync("orders",
+                    var result = producer.ProduceAsync("order-create",
                     new Message<string, string>
                     {
                         Key = orderEvent.OrderId.ToString(),
