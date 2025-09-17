@@ -37,18 +37,18 @@ namespace API_Gateway.Services
 
                 string eventJson = JsonSerializer.Serialize(orderEvent);
 
-                try
+                for(int i = 0; i < 500; i++)
                 {
-                    var result = producer.ProduceAsync("order-create",
-                    new Message<string, string>
+                    try
                     {
-                        Key = orderEvent.OrderId.ToString(),
-                       Value = eventJson
-                    });
-                }
-                catch(Exception e)
-                {
-                    return false;
+                        producer.ProduceAsync("order-create", new Message<string, string> { Key = orderEvent.OrderId.ToString(), Value = eventJson });
+                    }
+                    catch (Exception e)
+                    {
+                        return false;
+                    }
+
+                    Task.Delay(100);
                 }
             }
             return true;

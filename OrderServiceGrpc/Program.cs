@@ -10,7 +10,7 @@ builder.Services.AddGrpc();
 builder.Services.AddScoped<ICustomerTransactionRepository, CustomerTransactionRepository>();
 builder.Services.AddSingleton<IOrderRepository, OrderRepository>();
 
-builder.Services.AddHostedService<ConsumerBackgroundService>();
+builder.Services.AddHostedService<OrderEventConsumer>();
 
 var app = builder.Build();
 
