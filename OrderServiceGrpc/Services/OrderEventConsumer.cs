@@ -85,8 +85,13 @@ namespace OrderServiceGrpc.Services
                 while (!stoppingToken.IsCancellationRequested)
                 {
                     // Consume messages (blocking call)
-                    ConsumeResult<string, string> result = _consumer.Consume(stoppingToken);
-
+                    ConsumeResult<string, string> result = _consumer.Consume(TimeSpan.FromMilliseconds(100));
+                    
+                    if (result == null)
+                    {
+                        await Task.Delay(200, stoppingToken); // prevent CPU spin
+                        continue;
+                    }
                     try
                     {
                         // Handle different topics dynamically
@@ -102,7 +107,7 @@ namespace OrderServiceGrpc.Services
 
                             default:
                                 // Ignore unknown topics
-                                return;
+                                continue;
                         }
 
                         // After successful processing, store and track offset for manual commit

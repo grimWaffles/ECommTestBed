@@ -11,6 +11,7 @@ namespace API_Gateway.Controllers
     using System.Security.Claims;
     using System.Threading.Tasks;
     using ApiGateway.Protos;
+    using API_Gateway.Helpers;
 
     //[Authorize]
     [ApiController]
@@ -18,8 +19,8 @@ namespace API_Gateway.Controllers
     public class OrderController : ControllerBase
     {
         private readonly IOrderGrpcClient _grpcClient;
-        private readonly IOrderEventProducer _orderEvent;
-        public OrderController(IOrderGrpcClient grpcClient, IOrderEventProducer orderEvent)
+        private readonly IKafkaEventProducer _orderEvent;
+        public OrderController(IOrderGrpcClient grpcClient, IKafkaEventProducer orderEvent)
         {
             _grpcClient = grpcClient;
             _orderEvent = orderEvent;
