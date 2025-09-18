@@ -39,6 +39,8 @@ namespace API_Gateway.Services
             });
 
             _orderClient = new OrderGrpcService.OrderGrpcServiceClient(channel);
+
+            //Kafka
             _kafkaEventProducer = kafkaEventProducer;
         }
 
